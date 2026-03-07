@@ -3,7 +3,7 @@ use std::sync::Mutex;
 
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
-use crate::app_error::{AppCommandError, AppErrorCode};
+use crate::app_error::AppCommandError;
 use crate::db::AppDatabase;
 use crate::models::FolderHistoryEntry;
 
@@ -191,11 +191,10 @@ pub async fn focus_folder_window(app: AppHandle, folder_id: i32) -> Result<(), A
             }
         }
     }
-    Err(AppCommandError::new(
-        AppErrorCode::NotFound,
-        format!("No open window for folder {folder_id}"),
+    Err(
+        AppCommandError::not_found(format!("No open window for folder {folder_id}"))
+            .with_detail(format!("folder_id={folder_id}")),
     )
-    .with_detail(format!("folder_id={folder_id}")))
 }
 
 #[tauri::command]
@@ -259,11 +258,8 @@ pub async fn open_commit_window(
         .await
         .map_err(AppCommandError::from)?
         .ok_or_else(|| {
-            AppCommandError::new(
-                AppErrorCode::NotFound,
-                format!("Folder {folder_id} not found"),
-            )
-            .with_detail(format!("folder_id={folder_id}"))
+            AppCommandError::not_found(format!("Folder {folder_id} not found"))
+                .with_detail(format!("folder_id={folder_id}"))
         })?;
 
     let url = WebviewUrl::App(format!("commit?folderId={folder_id}").into());

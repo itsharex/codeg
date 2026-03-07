@@ -21,7 +21,6 @@ export type AgentType =
   | "stakpak"
 
 export type AppErrorCode =
-  | "unknown"
   | "invalid_input"
   | "configuration_missing"
   | "configuration_invalid"

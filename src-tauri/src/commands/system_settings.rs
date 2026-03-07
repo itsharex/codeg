@@ -1,7 +1,7 @@
 use sea_orm::DatabaseConnection;
 use tauri::State;
 
-use crate::app_error::{AppCommandError, AppErrorCode};
+use crate::app_error::AppCommandError;
 use crate::db::service::app_metadata_service;
 use crate::db::AppDatabase;
 use crate::models::{SystemLanguageSettings, SystemProxySettings};
@@ -33,15 +33,11 @@ fn normalize_proxy_settings(
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .ok_or_else(|| {
-            AppCommandError::new(
-                AppErrorCode::ConfigurationMissing,
-                "Proxy URL is required when proxy is enabled",
-            )
+            AppCommandError::configuration_missing("Proxy URL is required when proxy is enabled")
         })?;
 
     reqwest::Proxy::all(proxy_url).map_err(|e| {
-        AppCommandError::new(AppErrorCode::ConfigurationInvalid, "Invalid proxy URL")
-            .with_detail(e.to_string())
+        AppCommandError::configuration_invalid("Invalid proxy URL").with_detail(e.to_string())
     })?;
 
     Ok(SystemProxySettings {
@@ -62,11 +58,8 @@ pub(crate) async fn load_system_proxy_settings(
     };
 
     let parsed = serde_json::from_str::<SystemProxySettings>(&raw).map_err(|e| {
-        AppCommandError::new(
-            AppErrorCode::ConfigurationInvalid,
-            "Failed to parse stored proxy settings",
-        )
-        .with_detail(e.to_string())
+        AppCommandError::configuration_invalid("Failed to parse stored proxy settings")
+            .with_detail(e.to_string())
     })?;
     normalize_proxy_settings(parsed)
 }
@@ -83,11 +76,8 @@ pub(crate) async fn load_system_language_settings(
     };
 
     serde_json::from_str::<SystemLanguageSettings>(&raw).map_err(|e| {
-        AppCommandError::new(
-            AppErrorCode::ConfigurationInvalid,
-            "Failed to parse stored language settings",
-        )
-        .with_detail(e.to_string())
+        AppCommandError::configuration_invalid("Failed to parse stored language settings")
+            .with_detail(e.to_string())
     })
 }
 
@@ -105,11 +95,8 @@ pub async fn update_system_proxy_settings(
 ) -> Result<SystemProxySettings, AppCommandError> {
     let normalized = normalize_proxy_settings(settings)?;
     let serialized = serde_json::to_string(&normalized).map_err(|e| {
-        AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Failed to serialize proxy settings",
-        )
-        .with_detail(e.to_string())
+        AppCommandError::invalid_input("Failed to serialize proxy settings")
+            .with_detail(e.to_string())
     })?;
 
     app_metadata_service::upsert_value(&db.conn, SYSTEM_PROXY_SETTINGS_KEY, &serialized)
@@ -133,11 +120,8 @@ pub async fn update_system_language_settings(
     db: State<'_, AppDatabase>,
 ) -> Result<SystemLanguageSettings, AppCommandError> {
     let serialized = serde_json::to_string(&settings).map_err(|e| {
-        AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Failed to serialize language settings",
-        )
-        .with_detail(e.to_string())
+        AppCommandError::invalid_input("Failed to serialize language settings")
+            .with_detail(e.to_string())
     })?;
 
     app_metadata_service::upsert_value(&db.conn, SYSTEM_LANGUAGE_SETTINGS_KEY, &serialized)

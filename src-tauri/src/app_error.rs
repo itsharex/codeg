@@ -6,7 +6,6 @@ use crate::db::error::DbError;
 #[derive(Debug, Clone, Copy, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AppErrorCode {
-    Unknown,
     InvalidInput,
     ConfigurationMissing,
     ConfigurationInvalid,
@@ -55,6 +54,10 @@ impl AppCommandError {
         Self::new(AppErrorCode::InvalidInput, message)
     }
 
+    pub fn configuration_missing(message: impl Into<String>) -> Self {
+        Self::new(AppErrorCode::ConfigurationMissing, message)
+    }
+
     pub fn configuration_invalid(message: impl Into<String>) -> Self {
         Self::new(AppErrorCode::ConfigurationInvalid, message)
     }
@@ -63,8 +66,32 @@ impl AppCommandError {
         Self::new(AppErrorCode::NotFound, message)
     }
 
+    pub fn already_exists(message: impl Into<String>) -> Self {
+        Self::new(AppErrorCode::AlreadyExists, message)
+    }
+
+    pub fn permission_denied(message: impl Into<String>) -> Self {
+        Self::new(AppErrorCode::PermissionDenied, message)
+    }
+
+    pub fn dependency_missing(message: impl Into<String>) -> Self {
+        Self::new(AppErrorCode::DependencyMissing, message)
+    }
+
     pub fn network(message: impl Into<String>) -> Self {
         Self::new(AppErrorCode::NetworkError, message)
+    }
+
+    pub fn authentication_failed(message: impl Into<String>) -> Self {
+        Self::new(AppErrorCode::AuthenticationFailed, message)
+    }
+
+    pub fn database_error(message: impl Into<String>) -> Self {
+        Self::new(AppErrorCode::DatabaseError, message)
+    }
+
+    pub fn io_error(message: impl Into<String>) -> Self {
+        Self::new(AppErrorCode::IoError, message)
     }
 
     pub fn task_execution_failed(message: impl Into<String>) -> Self {
@@ -102,17 +129,5 @@ impl AppCommandError {
 impl From<DbError> for AppCommandError {
     fn from(value: DbError) -> Self {
         Self::db(value)
-    }
-}
-
-impl From<String> for AppCommandError {
-    fn from(value: String) -> Self {
-        Self::new(AppErrorCode::Unknown, "Operation failed").with_detail(value)
-    }
-}
-
-impl From<&str> for AppCommandError {
-    fn from(value: &str) -> Self {
-        Self::from(value.to_string())
     }
 }

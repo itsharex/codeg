@@ -13,7 +13,7 @@ use tauri::Emitter;
 use tokio::sync::Semaphore;
 use walkdir::WalkDir;
 
-use crate::app_error::{AppCommandError, AppErrorCode};
+use crate::app_error::AppCommandError;
 use crate::db::error::DbError;
 use crate::db::service::folder_service;
 use crate::db::AppDatabase;
@@ -315,8 +315,7 @@ pub async fn set_folder_parent_branch(
         .one(&db.conn)
         .await
         .map_err(|e| {
-            AppCommandError::new(AppErrorCode::DatabaseError, "Failed to query folder")
-                .with_detail(e.to_string())
+            AppCommandError::database_error("Failed to query folder").with_detail(e.to_string())
         })?;
 
     if let Some(folder_model) = row {
@@ -354,8 +353,7 @@ pub async fn create_folder_directory(path: String) -> Result<(), AppCommandError
 #[tauri::command]
 pub async fn clone_repository(url: String, target_dir: String) -> Result<(), AppCommandError> {
     if url.trim().is_empty() || target_dir.trim().is_empty() {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
+        return Err(AppCommandError::invalid_input(
             "Repository URL and target directory are required",
         ));
     }
@@ -366,8 +364,7 @@ pub async fn clone_repository(url: String, target_dir: String) -> Result<(), App
         .await
         .map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
-                AppCommandError::new(
-                    AppErrorCode::DependencyMissing,
+                AppCommandError::dependency_missing(
                     "Git is not installed. Please install Git first.",
                 )
                 .with_detail("https://git-scm.com")
@@ -387,16 +384,12 @@ fn classify_git_clone_error(stderr: &str) -> AppCommandError {
     let normalized = stderr.to_lowercase();
 
     if normalized.contains("already exists and is not an empty directory") {
-        return AppCommandError::new(
-            AppErrorCode::AlreadyExists,
-            "Target directory already exists and is not empty",
-        )
-        .with_detail(stderr.to_string());
+        return AppCommandError::already_exists("Target directory already exists and is not empty")
+            .with_detail(stderr.to_string());
     }
 
     if normalized.contains("repository not found") {
-        return AppCommandError::new(
-            AppErrorCode::NotFound,
+        return AppCommandError::not_found(
             "Repository not found. Check URL and access permissions.",
         )
         .with_detail(stderr.to_string());
@@ -407,30 +400,23 @@ fn classify_git_clone_error(stderr: &str) -> AppCommandError {
         || normalized.contains("connection timed out")
         || normalized.contains("failed to connect")
     {
-        return AppCommandError::new(
-            AppErrorCode::NetworkError,
-            "Network is unavailable while cloning repository",
-        )
-        .with_detail(stderr.to_string());
+        return AppCommandError::network("Network is unavailable while cloning repository")
+            .with_detail(stderr.to_string());
     }
 
     if normalized.contains("authentication failed")
         || normalized.contains("could not read username")
         || normalized.contains("permission denied (publickey)")
     {
-        return AppCommandError::new(
-            AppErrorCode::AuthenticationFailed,
+        return AppCommandError::authentication_failed(
             "Authentication failed while cloning repository",
         )
         .with_detail(stderr.to_string());
     }
 
     if normalized.contains("permission denied") {
-        return AppCommandError::new(
-            AppErrorCode::PermissionDenied,
-            "Permission denied while cloning repository",
-        )
-        .with_detail(stderr.to_string());
+        return AppCommandError::permission_denied("Permission denied while cloning repository")
+            .with_detail(stderr.to_string());
     }
 
     AppCommandError::external_command("Git clone failed", stderr.to_string())
@@ -610,18 +596,16 @@ pub async fn git_worktree_add(
         .map_err(AppCommandError::io)?;
     if check.status.success() {
         return Err(
-            AppCommandError::new(AppErrorCode::AlreadyExists, "Branch already exists")
-                .with_detail(branch_name),
+            AppCommandError::already_exists("Branch already exists").with_detail(branch_name)
         );
     }
 
     // 校验目录是否已存在
     if std::path::Path::new(&worktree_path).exists() {
-        return Err(AppCommandError::new(
-            AppErrorCode::AlreadyExists,
-            "Worktree directory already exists",
-        )
-        .with_detail(worktree_path));
+        return Err(
+            AppCommandError::already_exists("Worktree directory already exists")
+                .with_detail(worktree_path),
+        );
     }
 
     // 执行 git worktree add -b <branch> <path>
@@ -786,8 +770,7 @@ pub async fn git_diff_with_branch(
 ) -> Result<String, AppCommandError> {
     let target_branch = branch.trim();
     if target_branch.is_empty() {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
+        return Err(AppCommandError::invalid_input(
             "Branch name cannot be empty",
         ));
     }
@@ -876,11 +859,9 @@ pub async fn git_show_file(
 
     let bytes = &output.stdout;
     if bytes.iter().take(2048).any(|b| *b == 0) {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Binary files are not supported",
-        )
-        .with_detail(file_spec));
+        return Err(
+            AppCommandError::invalid_input("Binary files are not supported").with_detail(file_spec),
+        );
     }
 
     Ok(String::from_utf8_lossy(bytes).to_string())
@@ -946,10 +927,7 @@ pub async fn git_commit(
 pub async fn git_rollback_file(path: String, file: String) -> Result<(), AppCommandError> {
     let target = file.trim();
     if target.is_empty() {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "File path cannot be empty",
-        ));
+        return Err(AppCommandError::invalid_input("File path cannot be empty"));
     }
 
     let literal_file = to_git_literal_pathspec(target);
@@ -1294,8 +1272,7 @@ fn should_refresh_git_status_for_paths(root_display: &str, changed_paths: &[Stri
 
 fn canonicalize_watch_root(root: &Path) -> Result<(PathBuf, String), AppCommandError> {
     let canonical = std::fs::canonicalize(root).map_err(|e| {
-        AppCommandError::new(AppErrorCode::NotFound, "Unable to resolve workspace root")
-            .with_detail(e.to_string())
+        AppCommandError::not_found("Unable to resolve workspace root").with_detail(e.to_string())
     })?;
     let key = normalize_slash_path(&canonical);
     Ok((canonical, key))
@@ -1532,26 +1509,17 @@ fn run_file_watch_event_loop(
 fn resolve_tree_path(root: &Path, rel_path: &str) -> Result<PathBuf, AppCommandError> {
     let rel = Path::new(rel_path);
     if rel.is_absolute() {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Path must be relative",
-        ));
+        return Err(AppCommandError::invalid_input("Path must be relative"));
     }
 
     for component in rel.components() {
         match component {
             Component::Normal(_) | Component::CurDir => {}
             Component::ParentDir => {
-                return Err(AppCommandError::new(
-                    AppErrorCode::InvalidInput,
-                    "Path cannot contain '..'",
-                ));
+                return Err(AppCommandError::invalid_input("Path cannot contain '..'"));
             }
             Component::RootDir | Component::Prefix(_) => {
-                return Err(AppCommandError::new(
-                    AppErrorCode::InvalidInput,
-                    "Invalid path component",
-                ));
+                return Err(AppCommandError::invalid_input("Invalid path component"));
             }
         }
     }
@@ -1562,20 +1530,13 @@ fn resolve_tree_path(root: &Path, rel_path: &str) -> Result<PathBuf, AppCommandE
 fn validate_new_name(new_name: &str) -> Result<&str, AppCommandError> {
     let trimmed = new_name.trim();
     if trimmed.is_empty() {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "New name cannot be empty",
-        ));
+        return Err(AppCommandError::invalid_input("New name cannot be empty"));
     }
     if trimmed == "." || trimmed == ".." {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Invalid file name",
-        ));
+        return Err(AppCommandError::invalid_input("Invalid file name"));
     }
     if trimmed.contains('/') || trimmed.contains('\\') {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
+        return Err(AppCommandError::invalid_input(
             "New name cannot contain path separators",
         ));
     }
@@ -1589,10 +1550,7 @@ pub async fn start_file_tree_watch(
 ) -> Result<(), AppCommandError> {
     let root = PathBuf::from(&root_path);
     if !root.exists() || !root.is_dir() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Folder does not exist",
-        ));
+        return Err(AppCommandError::not_found("Folder does not exist"));
     }
 
     let (root_canonical, key) = canonicalize_watch_root(&root)?;
@@ -1636,8 +1594,7 @@ pub async fn start_file_tree_watch(
             },
         )
         .map_err(|e| {
-            AppCommandError::new(AppErrorCode::IoError, "Failed to create file watcher")
-                .with_detail(e.to_string())
+            AppCommandError::io_error("Failed to create file watcher").with_detail(e.to_string())
         })?,
     );
 
@@ -1646,8 +1603,7 @@ pub async fn start_file_tree_watch(
         .ok_or_else(|| AppCommandError::task_execution_failed("Failed to create file watcher"))?
         .watch(&root_canonical, RecursiveMode::Recursive)
         .map_err(|e| {
-            AppCommandError::new(AppErrorCode::IoError, "Failed to start file watcher")
-                .with_detail(e.to_string())
+            AppCommandError::io_error("Failed to start file watcher").with_detail(e.to_string())
         })?;
 
     let should_cleanup_new_watcher = {
@@ -1789,8 +1745,7 @@ fn ensure_path_in_workspace(root: &Path, target: &Path) -> Result<(), AppCommand
     let canonical_root = std::fs::canonicalize(root).map_err(AppCommandError::io)?;
     let canonical_target = std::fs::canonicalize(target).map_err(AppCommandError::io)?;
     if !canonical_target.starts_with(&canonical_root) {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
+        return Err(AppCommandError::invalid_input(
             "Path is outside workspace root",
         ));
     }
@@ -1807,8 +1762,7 @@ fn read_text_preview(target: &Path, limit: usize) -> Result<(String, bool), AppC
         .map_err(AppCommandError::io)?;
 
     if bytes.iter().take(2_048).any(|b| *b == 0) {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
+        return Err(AppCommandError::invalid_input(
             "Binary files are not supported in preview",
         ));
     }
@@ -1822,18 +1776,14 @@ fn read_text_preview(target: &Path, limit: usize) -> Result<(String, bool), AppC
 
 fn atomic_write_text(path: &Path, bytes: &[u8]) -> Result<(), AppCommandError> {
     let parent = path.parent().ok_or_else(|| {
-        AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Cannot determine parent directory for target file",
-        )
-        .with_detail(path.display().to_string())
+        AppCommandError::invalid_input("Cannot determine parent directory for target file")
+            .with_detail(path.display().to_string())
     })?;
     if !parent.exists() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Parent directory does not exist",
-        )
-        .with_detail(parent.display().to_string()));
+        return Err(
+            AppCommandError::not_found("Parent directory does not exist")
+                .with_detail(parent.display().to_string()),
+        );
     }
 
     let temp_path = parent.join(format!(
@@ -1902,11 +1852,10 @@ fn replace_file(temp_path: &Path, target_path: &Path) -> Result<(), AppCommandEr
     };
 
     if ok == 0 {
-        return Err(AppCommandError::new(
-            AppErrorCode::IoError,
-            "Failed to atomically replace file",
-        )
-        .with_detail(std::io::Error::last_os_error().to_string()));
+        return Err(
+            AppCommandError::io_error("Failed to atomically replace file")
+                .with_detail(std::io::Error::last_os_error().to_string()),
+        );
     }
 
     Ok(())
@@ -1970,8 +1919,7 @@ pub async fn get_file_tree(
         })
     {
         let entry = entry.map_err(|e| {
-            AppCommandError::new(AppErrorCode::IoError, "Failed to walk file tree")
-                .with_detail(e.to_string())
+            AppCommandError::io_error("Failed to walk file tree").with_detail(e.to_string())
         })?;
         let entry_path = entry.path().to_path_buf();
 
@@ -2088,24 +2036,15 @@ pub async fn read_file_preview(
 ) -> Result<FilePreviewContent, AppCommandError> {
     let root = PathBuf::from(&root_path);
     if !root.exists() || !root.is_dir() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Folder does not exist",
-        ));
+        return Err(AppCommandError::not_found("Folder does not exist"));
     }
 
     let target = resolve_tree_path(&root, &path)?;
     if !target.exists() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "File does not exist",
-        ));
+        return Err(AppCommandError::not_found("File does not exist"));
     }
     if !target.is_file() {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Path is not a file",
-        ));
+        return Err(AppCommandError::invalid_input("Path is not a file"));
     }
     let limit = max_bytes
         .unwrap_or(FILE_PREVIEW_DEFAULT_MAX_BYTES)
@@ -2132,24 +2071,15 @@ pub async fn read_file_for_edit(
 ) -> Result<FileEditContent, AppCommandError> {
     let root = PathBuf::from(&root_path);
     if !root.exists() || !root.is_dir() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Folder does not exist",
-        ));
+        return Err(AppCommandError::not_found("Folder does not exist"));
     }
 
     let target = resolve_tree_path(&root, &path)?;
     if !target.exists() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "File does not exist",
-        ));
+        return Err(AppCommandError::not_found("File does not exist"));
     }
     if !target.is_file() {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Path is not a file",
-        ));
+        return Err(AppCommandError::invalid_input("Path is not a file"));
     }
 
     let limit = max_bytes
@@ -2193,31 +2123,21 @@ pub async fn save_file_content(
 ) -> Result<FileSaveResult, AppCommandError> {
     let root = PathBuf::from(&root_path);
     if !root.exists() || !root.is_dir() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Folder does not exist",
-        ));
+        return Err(AppCommandError::not_found("Folder does not exist"));
     }
     if content.len() > FILE_EDIT_MAX_BYTES {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "File is too large to save in editor",
-        )
-        .with_detail(format!("max_bytes={FILE_EDIT_MAX_BYTES}")));
+        return Err(
+            AppCommandError::invalid_input("File is too large to save in editor")
+                .with_detail(format!("max_bytes={FILE_EDIT_MAX_BYTES}")),
+        );
     }
 
     let target = resolve_tree_path(&root, &path)?;
     if !target.exists() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "File does not exist",
-        ));
+        return Err(AppCommandError::not_found("File does not exist"));
     }
     if !target.is_file() {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Path is not a file",
-        ));
+        return Err(AppCommandError::invalid_input("Path is not a file"));
     }
     let path_for_response = path.clone();
 
@@ -2226,32 +2146,26 @@ pub async fn save_file_content(
 
         let link_meta = std::fs::symlink_metadata(&target).map_err(AppCommandError::io)?;
         if link_meta.file_type().is_symlink() {
-            return Err(AppCommandError::new(
-                AppErrorCode::InvalidInput,
+            return Err(AppCommandError::invalid_input(
                 "Saving symlink targets is not supported",
             ));
         }
 
         let before_meta = std::fs::metadata(&target).map_err(AppCommandError::io)?;
         if before_meta.permissions().readonly() {
-            return Err(AppCommandError::new(
-                AppErrorCode::PermissionDenied,
-                "File is read-only",
-            ));
+            return Err(AppCommandError::permission_denied("File is read-only"));
         }
 
         let current_bytes = std::fs::read(&target).map_err(AppCommandError::io)?;
         if current_bytes.iter().take(2_048).any(|b| *b == 0) {
-            return Err(AppCommandError::new(
-                AppErrorCode::InvalidInput,
+            return Err(AppCommandError::invalid_input(
                 "Binary files are not supported in editor",
             ));
         }
         let current_etag = compute_etag(&current_bytes, &before_meta);
         if let Some(expected) = expected_etag {
             if expected != current_etag {
-                return Err(AppCommandError::new(
-                    AppErrorCode::InvalidInput,
+                return Err(AppCommandError::invalid_input(
                     "File has changed on disk. Reload the file before saving.",
                 ));
             }
@@ -2308,31 +2222,21 @@ pub async fn save_file_copy(
 ) -> Result<FileSaveResult, AppCommandError> {
     let root = PathBuf::from(&root_path);
     if !root.exists() || !root.is_dir() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Folder does not exist",
-        ));
+        return Err(AppCommandError::not_found("Folder does not exist"));
     }
     if content.len() > FILE_EDIT_MAX_BYTES {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "File is too large to save in editor",
-        )
-        .with_detail(format!("max_bytes={FILE_EDIT_MAX_BYTES}")));
+        return Err(
+            AppCommandError::invalid_input("File is too large to save in editor")
+                .with_detail(format!("max_bytes={FILE_EDIT_MAX_BYTES}")),
+        );
     }
 
     let source = resolve_tree_path(&root, &path)?;
     if !source.exists() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "File does not exist",
-        ));
+        return Err(AppCommandError::not_found("File does not exist"));
     }
     if !source.is_file() {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Path is not a file",
-        ));
+        return Err(AppCommandError::invalid_input("Path is not a file"));
     }
 
     run_file_io(move || {
@@ -2340,8 +2244,7 @@ pub async fn save_file_copy(
 
         let source_meta = std::fs::symlink_metadata(&source).map_err(AppCommandError::io)?;
         if source_meta.file_type().is_symlink() {
-            return Err(AppCommandError::new(
-                AppErrorCode::InvalidInput,
+            return Err(AppCommandError::invalid_input(
                 "Saving symlink targets is not supported",
             ));
         }
@@ -2349,10 +2252,7 @@ pub async fn save_file_copy(
         let parent = source
             .parent()
             .ok_or_else(|| {
-                AppCommandError::new(
-                    AppErrorCode::InvalidInput,
-                    "Cannot determine parent directory for source file",
-                )
+                AppCommandError::invalid_input("Cannot determine parent directory for source file")
             })?
             .to_path_buf();
         ensure_path_in_workspace(&root, &parent)?;
@@ -2360,12 +2260,7 @@ pub async fn save_file_copy(
         let source_name = source
             .file_name()
             .map(|value| value.to_string_lossy().to_string())
-            .ok_or_else(|| {
-                AppCommandError::new(
-                    AppErrorCode::InvalidInput,
-                    "Cannot determine source file name",
-                )
-            })?;
+            .ok_or_else(|| AppCommandError::invalid_input("Cannot determine source file name"))?;
 
         let mut created_path: Option<PathBuf> = None;
         for attempt in 1..=9_999 {
@@ -2379,8 +2274,7 @@ pub async fn save_file_copy(
         }
 
         let created_path = created_path.ok_or_else(|| {
-            AppCommandError::new(
-                AppErrorCode::AlreadyExists,
+            AppCommandError::already_exists(
                 "Unable to create copy file: too many existing local copies",
             )
         })?;
@@ -2394,11 +2288,8 @@ pub async fn save_file_copy(
         let rel_path = created_path
             .strip_prefix(&root)
             .map_err(|e| {
-                AppCommandError::new(
-                    AppErrorCode::InvalidInput,
-                    "Failed to compute relative path for copy",
-                )
-                .with_detail(e.to_string())
+                AppCommandError::invalid_input("Failed to compute relative path for copy")
+                    .with_detail(e.to_string())
             })?
             .to_string_lossy()
             .replace('\\', "/");
@@ -2422,32 +2313,22 @@ pub async fn rename_file_tree_entry(
 ) -> Result<String, AppCommandError> {
     let root = PathBuf::from(&root_path);
     if !root.exists() || !root.is_dir() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Folder does not exist",
-        ));
+        return Err(AppCommandError::not_found("Folder does not exist"));
     }
 
     let target = resolve_tree_path(&root, &path)?;
     if !target.exists() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Target file does not exist",
-        ));
+        return Err(AppCommandError::not_found("Target file does not exist"));
     }
     if target == root {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
+        return Err(AppCommandError::invalid_input(
             "Cannot rename workspace root",
         ));
     }
 
-    let parent = target.parent().ok_or_else(|| {
-        AppCommandError::new(
-            AppErrorCode::InvalidInput,
-            "Cannot rename path without parent",
-        )
-    })?;
+    let parent = target
+        .parent()
+        .ok_or_else(|| AppCommandError::invalid_input("Cannot rename path without parent"))?;
     let validated_name = validate_new_name(&new_name)?;
     let next_path = parent.join(validated_name);
 
@@ -2455,8 +2336,7 @@ pub async fn rename_file_tree_entry(
         return Ok(path);
     }
     if next_path.exists() {
-        return Err(AppCommandError::new(
-            AppErrorCode::AlreadyExists,
+        return Err(AppCommandError::already_exists(
             "A file with this name already exists",
         ));
     }
@@ -2466,11 +2346,8 @@ pub async fn rename_file_tree_entry(
     let rel = next_path
         .strip_prefix(&root)
         .map_err(|e| {
-            AppCommandError::new(
-                AppErrorCode::InvalidInput,
-                "Failed to compute relative path",
-            )
-            .with_detail(e.to_string())
+            AppCommandError::invalid_input("Failed to compute relative path")
+                .with_detail(e.to_string())
         })?
         .to_string_lossy()
         .to_string();
@@ -2484,22 +2361,15 @@ pub async fn delete_file_tree_entry(
 ) -> Result<(), AppCommandError> {
     let root = PathBuf::from(&root_path);
     if !root.exists() || !root.is_dir() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Folder does not exist",
-        ));
+        return Err(AppCommandError::not_found("Folder does not exist"));
     }
 
     let target = resolve_tree_path(&root, &path)?;
     if !target.exists() {
-        return Err(AppCommandError::new(
-            AppErrorCode::NotFound,
-            "Target file does not exist",
-        ));
+        return Err(AppCommandError::not_found("Target file does not exist"));
     }
     if target == root {
-        return Err(AppCommandError::new(
-            AppErrorCode::InvalidInput,
+        return Err(AppCommandError::invalid_input(
             "Cannot delete workspace root",
         ));
     }

@@ -1,4 +1,4 @@
-use crate::app_error::{AppCommandError, AppErrorCode};
+use crate::app_error::AppCommandError;
 use crate::models::SystemProxySettings;
 
 const PROXY_ENV_KEYS: [&str; 6] = [
@@ -18,8 +18,7 @@ pub fn apply_system_proxy_settings(settings: &SystemProxySettings) -> Result<(),
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .ok_or_else(|| {
-                AppCommandError::new(
-                    AppErrorCode::ConfigurationMissing,
+                AppCommandError::configuration_missing(
                     "Proxy URL is required when proxy is enabled",
                 )
             })?;
