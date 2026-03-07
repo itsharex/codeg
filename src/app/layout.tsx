@@ -4,7 +4,6 @@ import { JetBrains_Mono } from "next/font/google"
 import { NextIntlClientProvider } from "next-intl"
 import { AppI18nProvider } from "@/components/i18n-provider"
 import { ThemeProvider } from "@/components/theme-provider"
-import enMessages from "@/i18n/messages/en.json"
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -24,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={jetbrainsMono.variable} suppressHydrationWarning>
       <body>
-        <NextIntlClientProvider locale="en" messages={enMessages}>
+        <NextIntlClientProvider locale="en" messages={null}>
           <AppI18nProvider>
             <ThemeProvider
               attribute="class"

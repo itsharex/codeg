@@ -10,13 +10,12 @@ import {
   useSyncExternalStore,
 } from "react"
 import { NextIntlClientProvider, type AbstractIntlMessages } from "next-intl"
-import enMessages from "@/i18n/messages/en.json"
-import zhCNMessages from "@/i18n/messages/zh-CN.json"
-import zhTWMessages from "@/i18n/messages/zh-TW.json"
+import { getFallbackMessages, getMessagesForLocale } from "@/i18n/messages"
 import {
   APP_LOCALE_TO_INTL_LOCALE,
   DEFAULT_LANGUAGE_SETTINGS,
   getSystemLocaleCandidates,
+  LANGUAGE_SETTINGS_STORAGE_KEY,
   normalizeLanguageSettings,
   resolveAppLocale,
 } from "@/lib/i18n"
@@ -28,12 +27,6 @@ interface AppI18nContextValue {
   languageSettings: SystemLanguageSettings
   languageSettingsLoaded: boolean
   setLanguageSettings: (settings: SystemLanguageSettings) => void
-}
-
-const MESSAGES_BY_LOCALE: Record<AppLocale, AbstractIntlMessages> = {
-  en: enMessages,
-  zh_cn: zhCNMessages,
-  zh_tw: zhTWMessages,
 }
 
 const AppI18nContext = createContext<AppI18nContextValue | null>(null)
@@ -55,6 +48,31 @@ function getSystemLocaleServerSnapshot(): string {
   return ""
 }
 
+function loadPersistedLanguageSettings(): SystemLanguageSettings | null {
+  if (typeof window === "undefined") return null
+
+  try {
+    const raw = window.localStorage.getItem(LANGUAGE_SETTINGS_STORAGE_KEY)
+    if (!raw) return null
+    return normalizeLanguageSettings(JSON.parse(raw) as SystemLanguageSettings)
+  } catch {
+    return null
+  }
+}
+
+function persistLanguageSettings(settings: SystemLanguageSettings) {
+  if (typeof window === "undefined") return
+
+  try {
+    window.localStorage.setItem(
+      LANGUAGE_SETTINGS_STORAGE_KEY,
+      JSON.stringify(settings)
+    )
+  } catch {
+    // Ignore write failures (e.g. disabled storage).
+  }
+}
+
 export function useAppI18n() {
   const context = useContext(AppI18nContext)
   if (!context) {
@@ -65,8 +83,13 @@ export function useAppI18n() {
 
 export function AppI18nProvider({ children }: { children: React.ReactNode }) {
   const [languageSettings, setLanguageSettingsState] =
-    useState<SystemLanguageSettings>(DEFAULT_LANGUAGE_SETTINGS)
+    useState<SystemLanguageSettings>(
+      () => loadPersistedLanguageSettings() ?? DEFAULT_LANGUAGE_SETTINGS
+    )
   const [languageSettingsLoaded, setLanguageSettingsLoaded] = useState(false)
+  const [messages, setMessages] = useState<AbstractIntlMessages>(
+    getFallbackMessages()
+  )
 
   const systemLocaleSnapshot = useSyncExternalStore(
     subscribeSystemLocale,
@@ -80,7 +103,9 @@ export function AppI18nProvider({ children }: { children: React.ReactNode }) {
 
   const setLanguageSettings = useCallback(
     (settings: SystemLanguageSettings) => {
-      setLanguageSettingsState(normalizeLanguageSettings(settings))
+      const normalized = normalizeLanguageSettings(settings)
+      setLanguageSettingsState(normalized)
+      persistLanguageSettings(normalized)
     },
     []
   )
@@ -115,6 +140,24 @@ export function AppI18nProvider({ children }: { children: React.ReactNode }) {
   const intlLocale = APP_LOCALE_TO_INTL_LOCALE[appLocale]
 
   useEffect(() => {
+    let cancelled = false
+
+    getMessagesForLocale(appLocale)
+      .then((nextMessages) => {
+        if (!cancelled) {
+          setMessages(nextMessages)
+        }
+      })
+      .catch((err) => {
+        console.error("[i18n] load locale messages failed:", err)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [appLocale])
+
+  useEffect(() => {
     document.documentElement.lang = intlLocale
   }, [intlLocale])
 
@@ -130,10 +173,7 @@ export function AppI18nProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppI18nContext.Provider value={contextValue}>
-      <NextIntlClientProvider
-        locale={intlLocale}
-        messages={MESSAGES_BY_LOCALE[appLocale]}
-      >
+      <NextIntlClientProvider locale={intlLocale} messages={messages}>
         {children}
       </NextIntlClientProvider>
     </AppI18nContext.Provider>

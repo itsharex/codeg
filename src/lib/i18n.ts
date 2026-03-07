@@ -2,13 +2,15 @@ import type { AppLocale, SystemLanguageSettings } from "@/lib/types"
 
 export const APP_LOCALES: readonly AppLocale[] = ["en", "zh_cn", "zh_tw"]
 const FALLBACK_APP_LOCALE: AppLocale = "en"
+export const LANGUAGE_SETTINGS_STORAGE_KEY = "codeg.system_language_settings"
+export type IntlLocale = "en" | "zh-CN" | "zh-TW"
 
 export const DEFAULT_LANGUAGE_SETTINGS: SystemLanguageSettings = {
   mode: "system",
   language: FALLBACK_APP_LOCALE,
 }
 
-export const APP_LOCALE_TO_INTL_LOCALE: Record<AppLocale, string> = {
+export const APP_LOCALE_TO_INTL_LOCALE: Record<AppLocale, IntlLocale> = {
   en: "en",
   zh_cn: "zh-CN",
   zh_tw: "zh-TW",

@@ -19,7 +19,7 @@ import { AppTitleBar } from "@/components/layout/app-title-bar"
 
 interface SettingsNavItem {
   href: string
-  labelKey: string
+  labelKey: "appearance" | "agents" | "mcp" | "skills" | "shortcuts" | "system"
   icon: ComponentType<{ className?: string }>
 }
 
@@ -115,6 +115,7 @@ export function SettingsShell({ children }: SettingsShellProps) {
           <nav className="space-y-1">
             {SETTINGS_NAV_ITEMS.map((item) => {
               const Icon = item.icon
+              const translationKey = `nav.${item.labelKey}` as const
               const active =
                 normalizedPathname === item.href ||
                 normalizedPathname.startsWith(`${item.href}/`)
@@ -130,7 +131,7 @@ export function SettingsShell({ children }: SettingsShellProps) {
                 >
                   <span className="inline-flex items-center gap-1">
                     <Icon className="h-3.5 w-3.5" />
-                    {t(`nav.${item.labelKey}`)}
+                    {t(translationKey)}
                   </span>
                 </Button>
               )
