@@ -69,6 +69,402 @@
     "installSuccess": "升級包已安裝，正在重新啟動應用",
     "installFailed": "升級失敗：{message}"
   },
+  "ShortcutSettings": {
+    "sectionTitle": "快捷鍵",
+    "resetDefault": "恢復預設",
+    "recordInstruction": "點擊右側按鈕後按下組合鍵即可修改。建議使用 Ctrl/Cmd、Alt、Shift 的組合。按 Esc 可取消錄製。",
+    "recording": "按下快捷鍵...",
+    "toasts": {
+      "conflict": "快捷鍵已被「{title}」占用",
+      "updated": "快捷鍵已更新",
+      "invalid": "快捷鍵無效，請重試",
+      "reset": "已恢復預設快捷鍵"
+    },
+    "actions": {
+      "toggle_search": {
+        "title": "打開搜尋",
+        "description": "打開或關閉會話搜尋面板"
+      },
+      "toggle_sidebar": {
+        "title": "切換左側邊欄",
+        "description": "顯示或隱藏會話列表側邊欄"
+      },
+      "toggle_terminal": {
+        "title": "切換終端",
+        "description": "顯示或隱藏底部終端面板"
+      },
+      "new_terminal_tab": {
+        "title": "新增終端",
+        "description": "當最近滑鼠活動在終端時新增終端分頁"
+      },
+      "close_current_terminal_tab": {
+        "title": "關閉目前終端",
+        "description": "當最近滑鼠活動在終端時關閉目前終端分頁"
+      },
+      "toggle_aux_panel": {
+        "title": "切換右側面板",
+        "description": "顯示或隱藏輔助資訊面板"
+      },
+      "new_conversation": {
+        "title": "新增會話",
+        "description": "在目前資料夾中建立新的對話分頁"
+      },
+      "open_folder": {
+        "title": "打開資料夾",
+        "description": "打開資料夾選擇器並在新視窗中開啟"
+      },
+      "open_settings": {
+        "title": "打開設定",
+        "description": "打開設定視窗"
+      },
+      "close_current_tab": {
+        "title": "關閉目前分頁",
+        "description": "關閉目前會話或檔案分頁"
+      },
+      "close_all_file_tabs": {
+        "title": "關閉全部檔案分頁",
+        "description": "僅在檔案模式下關閉所有檔案分頁"
+      }
+    }
+  },
+  "SkillsSettings": {
+    "title": "Skills",
+    "description": "左側選擇 Skill，右側預設預覽 Markdown，點擊編輯後可修改並儲存。",
+    "loadingAgents": "正在載入支援 Skills 的 Agent...",
+    "emptyNoManageableAgents": "目前沒有可管理 Skills 的 Agent。",
+    "managedTarget": "管理對象",
+    "selectAgentPlaceholder": "請選擇 Agent",
+    "searchPlaceholder": "搜尋名稱 / ID / 路徑...",
+    "skillsList": "Skills 列表",
+    "loadingSkills": "載入 Skills 中...",
+    "agentNotSupported": "目前 Agent 暫不支援 Skills 管理。",
+    "emptySkills": "暫無 Skill，可點擊「新增 Skill」。",
+    "newSkillTitle": "新增 Skill",
+    "skillInfo": "Skill 資訊",
+    "skillIdPlaceholder": "skill-id (letters/numbers/-/_/.)",
+    "skillsDirectoryWithPath": "Skills目錄：{path}",
+    "skillsDirectoryNeedId": "Skills目錄：請輸入 Skill ID 以產生完整路徑",
+    "markdownContent": "Markdown 內容",
+    "editingStatus": "編輯中",
+    "previewStatus": "預覽中",
+    "contentPlaceholder": "輸入 Skill 文字內容...",
+    "metadataTitle": "Skills 中繼資訊",
+    "onlyYamlMetadata": "該 Skill 僅包含 YAML 中繼資訊。",
+    "emptyContentHint": "暫無內容。點擊「編輯」開始輸入。",
+    "loadingSkill": "正在載入 Skill...",
+    "emptyNoAgents": "暫無可用 Agent。",
+    "actions": {
+      "preview": "預覽",
+      "edit": "編輯",
+      "openInWindow": "在新視窗打開",
+      "delete": "刪除",
+      "deleting": "刪除中...",
+      "refresh": "刷新",
+      "newSkill": "新增 Skill",
+      "reset": "重置",
+      "save": "儲存",
+      "saving": "儲存中...",
+      "cancel": "取消"
+    },
+    "deleteDialog": {
+      "title": "刪除 Skill",
+      "confirm": "確認刪除目前 Skill 嗎？此操作無法復原。",
+      "confirmWithNamePrefix": "確認刪除 Skill",
+      "confirmWithNameSuffix": "嗎？此操作無法復原。"
+    },
+    "toasts": {
+      "loadFailed": "載入 Skill 失敗",
+      "openFolderFailed": "打開目錄失敗",
+      "noSkillDirectory": "目前 Agent 未找到可用的 Skills 目錄",
+      "nameRequired": "Skill 名稱不能為空",
+      "updated": "Skill 已更新",
+      "created": "Skill 已建立",
+      "saveFailed": "儲存 Skill 失敗",
+      "deleted": "Skill 已刪除",
+      "deleteFailed": "刪除 Skill 失敗"
+    },
+    "templates": {
+      "gemini": "---\nname: example-skill\ndescription: Describe when this skill should be used.\n---\n\n# Skill Name\n\nInstructions for the agent when this skill is active.\n\n## Workflow\n\n1. Add actionable step one.\n2. Add actionable step two.\n",
+      "openCode": "---\nname: example-skill\ndescription: Describe when this skill should be used.\n---\n\n# Purpose\n\nDescribe what this skill helps with.\n\n# Steps\n\n1. Add actionable step one.\n2. Add actionable step two.\n",
+      "openClaw": "---\nname: example-skill\ndescription: Describe when this skill should be used.\nuser-invocable: true\ndisable-model-invocation: false\n---\n\n# Purpose\n\nDescribe what this skill helps with.\n\n# Instructions\n\n1. Add actionable instruction one.\n2. Add actionable instruction two.\n",
+      "default": "# Skill: example-skill\n\n## When to use\n\n- Describe trigger conditions.\n\n## Instructions\n\n1. Add actionable instruction one.\n2. Add actionable instruction two.\n"
+    }
+  },
+  "McpSettings": {
+    "loading": "載入中...",
+    "summary": {
+      "missingCommand": "(缺少 command)",
+      "missingUrl": "(缺少 url)"
+    },
+    "protocol": {
+      "stdio": "Stdio"
+    },
+    "errors": {
+      "selectInstallProtocol": "請選擇安裝協議",
+      "fieldRequired": "{field} 為必填項",
+      "fieldNeedsBoolean": "{field} 需要 true 或 false",
+      "fieldNeedsNumber": "{field} 需要數字",
+      "fieldNeedsInteger": "{field} 需要整數",
+      "fieldInvalidJson": "{field} JSON 無效：{message}",
+      "fieldOutOfRange": "{field} 的值不在可選範圍內",
+      "jsonEmpty": "{name} 不能為空",
+      "jsonInvalid": "{name} 不是合法 JSON：{message}",
+      "jsonMustBeObject": "{name} 必須是 JSON 物件"
+    },
+    "jsonNames": {
+      "localConfig": "MCP 配置",
+      "installConfig": "安裝配置"
+    },
+    "toasts": {
+      "uninstalled": "已卸載 MCP",
+      "uninstallFailed": "卸載失敗：{message}",
+      "selectAtLeastOneApp": "請至少選擇一個目標應用",
+      "saveSuccess": "儲存成功",
+      "saveFailed": "儲存失敗：{message}",
+      "installed": "已安裝 {name}",
+      "installFailed": "安裝失敗：{message}"
+    },
+    "installDialog": {
+      "title": "確認安裝 MCP",
+      "descriptionWithName": "將 {name} 安裝到本地配置。",
+      "description": "選擇安裝目標應用。",
+      "protocol": "協議",
+      "selectProtocol": "選擇協議",
+      "parameters": "配置參數",
+      "booleanPlaceholder": "請選擇 true/false",
+      "selectOneValue": "選擇一個值",
+      "targetApps": "目標應用"
+    },
+    "actions": {
+      "cancel": "取消",
+      "confirmInstall": "確認安裝",
+      "installing": "安裝中",
+      "uninstall": "卸載",
+      "uninstalling": "卸載中",
+      "viewDetails": "查看詳情",
+      "save": "儲存",
+      "saving": "儲存中",
+      "install": "安裝"
+    },
+    "tabs": {
+      "local": "本地 MCP",
+      "market": "MCP 市場"
+    },
+    "local": {
+      "filterPlaceholder": "篩選本地 MCP...",
+      "loadFailed": "載入失敗：{message}",
+      "empty": "目前未檢測到本地 MCP。",
+      "description": "本地 MCP 配置可直接編輯並儲存。",
+      "enabledApps": "啟用應用",
+      "configJson": "MCP 配置(JSON)"
+    },
+    "market": {
+      "selectMarketplace": "選擇市場",
+      "searchPlaceholder": "搜尋 MCP...",
+      "searchFailed": "搜尋失敗：{message}",
+      "loadingList": "載入 MCP 列表...",
+      "empty": "暫無 MCP 結果。",
+      "loadingDetail": "載入市場詳情...",
+      "detailLoadFailed": "載入詳情失敗：{message}",
+      "owner": "Owner: {owner}",
+      "namespace": "Namespace: {namespace}",
+      "defaultInstallProtocol": "預設安裝協議",
+      "currentOptionParameterCount": "目前選項參數數：{count}",
+      "installConfigDescription": "安裝配置(JSON，可修改後安裝；修改後將覆蓋協議/參數表單)",
+      "selectLeftToView": "請選擇左側市場 MCP 查看詳情。"
+    },
+    "badges": {
+      "verified": "Verified",
+      "remote": "Remote",
+      "hasHomepage": "Has Homepage",
+      "uses": "{count} uses",
+      "deployed": "Deployed",
+      "notDeployed": "Not Deployed"
+    },
+    "selectLeftMcp": "請選擇左側 MCP。"
+  },
+  "AcpAgentSettings": {
+    "title": "Agent SDK管理",
+    "description": "統一管理 Agent 的連接SDK、啟用狀態、環境變數、配置管理與版本預檢資訊。",
+    "loadingAgents": "載入 Agent 列表中...",
+    "agentList": "Agent 列表",
+    "emptyNoAgent": "暫無可用 Agent。",
+    "configManagement": "配置管理",
+    "envVars": "環境變數",
+    "nativeJsonConfig": "原生 JSON 配置",
+    "modelHintDefault": "留空則使用系統預設模型。",
+    "generalConfigDescriptionClaude": "支援 API URL、API Key 與 Claude 模型快捷配置，並與原生 JSON 配置聯動。",
+    "generalConfigDescriptionDefault": "支援重要配置輸入（API URL、API Key、Model）和原生 JSON 配置管理。",
+    "actions": {
+      "dragSort": "拖拽排序",
+      "dragSortAgent": "拖拽排序 {name}",
+      "refreshCheck": "刷新檢測",
+      "refreshCheckAgent": "刷新檢測 {name}",
+      "clickEnable": "點擊啟用 {name}",
+      "clickDisable": "點擊停用 {name}",
+      "install": "安裝",
+      "upgrade": "升級",
+      "uninstall": "卸載",
+      "uninstalling": "卸載中...",
+      "saveEnvVars": "儲存環境變數",
+      "saving": "儲存中...",
+      "saveCodexConfig": "儲存 Codex 配置",
+      "saveGeminiConfig": "儲存 Gemini 配置",
+      "saveOpenCodeConfig": "儲存 OpenCode 配置",
+      "saveOpenClawConfig": "儲存 OpenClaw 配置",
+      "saveConfigManagement": "儲存配置管理",
+      "saveCurrentProvider": "儲存目前 Provider",
+      "showApiKey": "顯示 API Key",
+      "hideApiKey": "隱藏 API Key",
+      "showKey": "顯示 Key",
+      "hideKey": "隱藏 Key",
+      "showToken": "顯示 Token",
+      "hideToken": "隱藏 Token",
+      "cancel": "取消",
+      "delete": "刪除",
+      "deleting": "刪除中...",
+      "confirmDelete": "確認刪除",
+      "confirmUninstall": "確認卸載"
+    },
+    "status": {
+      "enabled": "啟用",
+      "disabled": "停用",
+      "unchecked": "未檢測",
+      "agentEnabledAria": "{name} 已啟用",
+      "agentEnabledSwitch": "{name} 啟用"
+    },
+    "preflight": {
+      "count": "預檢項：{count}",
+      "notRun": "尚未執行檢測。"
+    },
+    "codex": {
+      "configDescription": "支援 API URL、API Key、模型名稱、Reasoning Effort 快捷配置，並與 `auth.json` / `config.toml` 雙向聯動。",
+      "selectProvider": "選擇 Provider",
+      "modelName": "模型名稱",
+      "selectReasoningEffort": "選擇 Reasoning Effort",
+      "enableWebsocket": "啟用 WebSocket",
+      "enableWebsocketAria": "Codex Provider 啟用 WebSocket",
+      "authJsonNative": "auth.json（原生）",
+      "configTomlNative": "config.toml（原生）"
+    },
+    "gemini": {
+      "authConfig": "Gemini 認證配置",
+      "authConfigDescription": "對齊 Gemini CLI 認證文件，支援自訂、Google 登入、Gemini API Key、Vertex AI（ADC / 服務帳號 / API Key）。",
+      "authMode": "認證方式",
+      "selectAuthMode": "選擇認證方式",
+      "viewAuthDoc": "查看認證文件",
+      "mode": {
+        "custom": "自訂介面",
+        "loginGoogle": "Google 登入（OAuth）",
+        "vertexServiceAccount": "Vertex AI（服務帳號）"
+      },
+      "hint": {
+        "custom": "填寫 API URL、API Key 和 Model，分別映射到 GOOGLE_GEMINI_BASE_URL / GEMINI_API_KEY / GEMINI_MODEL。",
+        "loginGoogle": "首次在終端執行 gemini 並完成 Google 登入；無需填寫 API Key。",
+        "geminiApiKey": "使用 Gemini API 時填寫 GEMINI_API_KEY。",
+        "vertexAdc": "使用 gcloud ADC，建議填寫 GOOGLE_CLOUD_PROJECT 與 GOOGLE_CLOUD_LOCATION。",
+        "vertexServiceAccount": "服務帳號 JSON 路徑寫入 GOOGLE_APPLICATION_CREDENTIALS。",
+        "vertexApiKey": "使用 Vertex AI API key 時填寫 GOOGLE_API_KEY。"
+      }
+    },
+    "openCode": {
+      "configManagement": "OpenCode 配置管理",
+      "configDescription": "對齊 OpenCode `provider` 配置結構，支援多供應商管理，並與原生 JSON 檔案雙向聯動。",
+      "providerManagement": "Provider 管理",
+      "providerCount": "共 {count} 個",
+      "addProvider": "新增 Provider",
+      "emptyProvider": "暫無 Provider，輸入 ID 後點擊「新增 Provider」建立。",
+      "providerEnabledState": "{providerId} 啟用狀態",
+      "selectProviderNpm": "選擇 provider.npm",
+      "notSet": "未設定",
+      "modelManagement": "模型管理",
+      "modelCount": "共 {count} 個",
+      "modelDescription": "對齊 OpenCode `provider.models` 結構。目前支援 `name` / `id` 快速管理；其它進階欄位會保留，可在下方原生 JSON 中繼續編輯。",
+      "addModel": "新增模型",
+      "emptyModel": "暫無模型，輸入 model id 後點擊「新增模型」建立。",
+      "modelId": "模型 ID",
+      "modelName": "模型名稱",
+      "deleteModel": "刪除模型 {modelId}",
+      "nativeJsonConfig": "OpenCode 原生 JSON 配置"
+    },
+    "openClaw": {
+      "gatewayConfig": "Gateway 配置",
+      "gatewayDescription": "配置 OpenClaw Gateway 連線資訊。支援本地或遠端 Gateway。",
+      "gatewayUrlHint": "留空則使用 openclaw 本地配置的 gateway.remote.url。",
+      "gatewayTokenPlaceholder": "Gateway 認證 Token",
+      "gatewayTokenHint": "建議使用 token-file 取代明文 Token，可透過 openclaw 命令列配置。",
+      "sessionKeyHint": "可選。指定 Gateway Session Key，留空則自動分配隔離會話。"
+    },
+    "claude": {
+      "mainModel": "主模型",
+      "reasoningModel": "推理模型（thinking）",
+      "haikuDefaultModel": "Haiku 預設模型",
+      "sonnetDefaultModel": "Sonnet 預設模型",
+      "opusDefaultModel": "Opus 預設模型"
+    },
+    "dialogs": {
+      "confirmDeleteProvider": "確認刪除 Provider {providerId}？",
+      "confirmDeleteProviderDescription": "將同步更新 OpenCode 配置與認證 JSON 檔案，刪除後不可恢復。",
+      "confirmUninstall": "確認卸載 {name}？",
+      "confirmUninstallDescription": "這會移除本地安裝版本，之後可隨時重新安裝。"
+    },
+    "errors": {
+      "nativeJsonMustBeObject": "原生 JSON 配置必須是物件",
+      "nativeJsonInvalid": "原生 JSON 配置格式錯誤：{message}",
+      "openCodeAuthMustBeObject": "OpenCode auth.json 必須是 JSON 物件",
+      "openCodeAuthInvalid": "OpenCode auth.json 格式錯誤：{message}",
+      "authMustBeObject": "auth.json 必須是 JSON 物件",
+      "authInvalid": "auth.json 格式錯誤：{message}",
+      "providerIdPattern": "Provider ID 僅支援字母、數字、底線、點與中劃線",
+      "providerExists": "Provider '{providerId}' 已存在",
+      "modelIdPattern": "模型 ID 僅支援字母、數字、底線、點、冒號與中劃線",
+      "modelExists": "Model '{modelId}' 已存在"
+    },
+    "warnings": {
+      "nativeJsonRecoveredStructured": "原生 JSON 配置格式無效，已重置為結構化配置",
+      "nativeJsonRecoveredOpenCode": "原生 JSON 配置格式無效，已重置為 OpenCode 結構化配置",
+      "openCodeAuthRecovered": "OpenCode auth.json 格式無效，已重置為預設配置",
+      "authRecoveredStructured": "auth.json 格式無效，已重置為結構化配置"
+    },
+    "toasts": {
+      "agentActionCompleted": "{name}{action}完成",
+      "agentActionFailed": "{name}{action}失敗",
+      "localVersion": "本地版本：{version}",
+      "installCompletedVersionLater": "安裝完成，版本將在下一次檢測時更新",
+      "uninstallCompleted": "{name}卸載完成",
+      "uninstallFailed": "{name}卸載失敗",
+      "localVersionRemoved": "本地版本已移除",
+      "saveAgentOrderFailed": "儲存 Agent 排序失敗",
+      "saveAgentSwitchFailed": "儲存 Agent 開關失敗",
+      "saveEnvFailed": "儲存環境變數失敗",
+      "codexSaved": "Codex 配置已儲存",
+      "saveCodexNativeFailed": "儲存 Codex 原生配置失敗",
+      "geminiSaved": "Gemini 配置已儲存",
+      "saveGeminiFailed": "儲存 Gemini 配置失敗",
+      "providerDeleted": "Provider {providerId} 已刪除",
+      "providerDeleteFailed": "刪除 Provider {providerId} 失敗",
+      "providerSaved": "Provider {providerId} 儲存成功",
+      "saveProviderFailed": "儲存 Provider {providerId} 失敗",
+      "openCodeConfigSynced": "OpenCode 配置與認證 JSON 已同步儲存。",
+      "openCodeSaved": "OpenCode 配置已儲存",
+      "saveOpenCodeFailed": "儲存 OpenCode 配置失敗",
+      "openClawSaved": "OpenClaw 配置已儲存",
+      "saveOpenClawFailed": "儲存 OpenClaw 配置失敗",
+      "configSaved": "配置已儲存",
+      "saveConfigManagementFailed": "儲存配置管理失敗"
+    },
+    "version": {
+      "statusLabel": "版本狀態",
+      "notInstalled": "未安裝",
+      "remoteLocal": "遠端：{remoteVersion} · 本地：{localVersion}",
+      "platformUnsupported": "{versionText}。目前平台不支援該 Agent。",
+      "clickInstall": "{versionText}。請點擊右側安裝。",
+      "localUnrecognized": "{versionText}。本地版本無法識別，可嘗試升級覆蓋安裝。",
+      "upgradeAvailable": "{versionText}。發現可升級版本。",
+      "remoteUnavailable": "{versionText}。遠端版本暫不可用。",
+      "latest": "{versionText}。已是最新版本。"
+    }
+  },
   "SettingsPages": {
     "agentsLoading": "載入 Agent 設定中..."
   }

@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   TerminalSquare,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -62,6 +63,11 @@ type Selection =
   | { kind: "market"; id: string }
   | null
 
+type McpTranslator = (
+  key: string,
+  values?: Record<string, string | number>
+) => string
+
 const APP_OPTIONS: { value: McpAppType; label: string }[] = [
   { value: "claude_code", label: "Claude" },
   { value: "codex", label: "Codex" },
@@ -79,11 +85,11 @@ function readString(spec: Record<string, unknown>, key: string): string | null {
   return trimmed ? trimmed : null
 }
 
-function specSummary(spec: Record<string, unknown>): string {
+function specSummary(spec: Record<string, unknown>, t: McpTranslator): string {
   const typ = readString(spec, "type") ?? "stdio"
 
   if (typ === "stdio") {
-    const command = readString(spec, "command") ?? "(missing command)"
+    const command = readString(spec, "command") ?? t("summary.missingCommand")
     const rawArgs = spec.args
     const args = Array.isArray(rawArgs)
       ? rawArgs
@@ -93,12 +99,12 @@ function specSummary(spec: Record<string, unknown>): string {
     return args.length > 0 ? `${command} ${args.join(" ")}` : command
   }
 
-  const url = readString(spec, "url") ?? "(missing url)"
+  const url = readString(spec, "url") ?? t("summary.missingUrl")
   return `${typ}: ${url}`
 }
 
-function protocolBadgeLabel(protocol: string): string {
-  if (protocol === "stdio") return "Stdio"
+function protocolBadgeLabel(protocol: string, t: McpTranslator): string {
+  if (protocol === "stdio") return t("protocol.stdio")
   if (protocol === "sse") return "SSE"
   if (protocol === "http") return "HTTP"
   return protocol
@@ -130,9 +136,10 @@ function defaultParamDraft(
 
 function parseParameterValues(
   option: McpMarketplaceInstallOption | null,
-  draft: Record<string, string>
+  draft: Record<string, string>,
+  t: McpTranslator
 ): { values: Record<string, unknown>; error: string | null } {
-  if (!option) return { values: {}, error: "请选择安装协议" }
+  if (!option) return { values: {}, error: t("errors.selectInstallProtocol") }
 
   const values: Record<string, unknown> = {}
   for (const field of option.parameters) {
@@ -140,7 +147,10 @@ function parseParameterValues(
 
     if (!raw) {
       if (field.required && field.default_value == null) {
-        return { values: {}, error: `${field.label} 为必填项` }
+        return {
+          values: {},
+          error: t("errors.fieldRequired", { field: field.label }),
+        }
       }
       continue
     }
@@ -149,7 +159,7 @@ function parseParameterValues(
       if (raw !== "true" && raw !== "false") {
         return {
           values: {},
-          error: `${field.label} 需要 true 或 false`,
+          error: t("errors.fieldNeedsBoolean", { field: field.label }),
         }
       }
       values[field.key] = raw === "true"
@@ -159,7 +169,10 @@ function parseParameterValues(
     if (field.kind === "number") {
       const next = Number(raw)
       if (!Number.isFinite(next)) {
-        return { values: {}, error: `${field.label} 需要数字` }
+        return {
+          values: {},
+          error: t("errors.fieldNeedsNumber", { field: field.label }),
+        }
       }
       values[field.key] = next
       continue
@@ -168,7 +181,10 @@ function parseParameterValues(
     if (field.kind === "integer") {
       const next = Number(raw)
       if (!Number.isInteger(next)) {
-        return { values: {}, error: `${field.label} 需要整数` }
+        return {
+          values: {},
+          error: t("errors.fieldNeedsInteger", { field: field.label }),
+        }
       }
       values[field.key] = next
       continue
@@ -179,13 +195,22 @@ function parseParameterValues(
         values[field.key] = JSON.parse(raw)
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        return { values: {}, error: `${field.label} JSON 无效：${message}` }
+        return {
+          values: {},
+          error: t("errors.fieldInvalidJson", {
+            field: field.label,
+            message,
+          }),
+        }
       }
       continue
     }
 
     if (field.enum_values.length > 0 && !field.enum_values.includes(raw)) {
-      return { values: {}, error: `${field.label} 的值不在可选范围内` }
+      return {
+        values: {},
+        error: t("errors.fieldOutOfRange", { field: field.label }),
+      }
     }
 
     values[field.key] = raw
@@ -215,10 +240,14 @@ function selectedAppsFromDraft(
   )
 }
 
-function parseJsonObject(text: string, name: string): Record<string, unknown> {
+function parseJsonObject(
+  text: string,
+  name: string,
+  t: McpTranslator
+): Record<string, unknown> {
   const trimmed = text.trim()
   if (!trimmed) {
-    throw new Error(`${name} 不能为空`)
+    throw new Error(t("errors.jsonEmpty", { name }))
   }
 
   let parsed: unknown
@@ -226,17 +255,19 @@ function parseJsonObject(text: string, name: string): Record<string, unknown> {
     parsed = JSON.parse(trimmed)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    throw new Error(`${name} 不是合法 JSON：${message}`)
+    throw new Error(t("errors.jsonInvalid", { name, message }))
   }
 
   if (!isObject(parsed)) {
-    throw new Error(`${name} 必须是 JSON 对象`)
+    throw new Error(t("errors.jsonMustBeObject", { name }))
   }
 
   return parsed
 }
 
 export function McpSettings() {
+  const t = useTranslations("McpSettings")
+  const mcpT = t as unknown as McpTranslator
   const [loading, setLoading] = useState(true)
   const [loadingError, setLoadingError] = useState<string | null>(null)
 
@@ -306,9 +337,9 @@ export function McpSettings() {
     return installedServers.filter((item) => {
       if (item.id.toLowerCase().includes(q)) return true
       const spec = isObject(item.spec) ? item.spec : {}
-      return specSummary(spec).toLowerCase().includes(q)
+      return specSummary(spec, mcpT).toLowerCase().includes(q)
     })
-  }, [installedServers, localFilter])
+  }, [installedServers, localFilter, mcpT])
 
   const refreshLocalServers = useCallback(async () => {
     const servers = await mcpScanLocal()
@@ -464,7 +495,7 @@ export function McpSettings() {
       try {
         await mcpRemoveServer(serverId)
         const next = await refreshLocalServers()
-        toast.success("已卸载 MCP")
+        toast.success(t("toasts.uninstalled"))
 
         setSelection((current) => {
           if (current?.kind !== "local" || current.id !== serverId)
@@ -474,12 +505,12 @@ export function McpSettings() {
         })
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        toast.error(`卸载失败：${message}`)
+        toast.error(t("toasts.uninstallFailed", { message }))
       } finally {
         setRunningAction(null)
       }
     },
-    [refreshLocalServers]
+    [refreshLocalServers, t]
   )
 
   const saveLocalServer = useCallback(async () => {
@@ -487,7 +518,11 @@ export function McpSettings() {
 
     let parsedSpec: Record<string, unknown>
     try {
-      parsedSpec = parseJsonObject(localSpecText, "MCP 配置")
+      parsedSpec = parseJsonObject(
+        localSpecText,
+        t("jsonNames.localConfig"),
+        mcpT
+      )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       toast.error(message)
@@ -496,7 +531,7 @@ export function McpSettings() {
 
     const apps = normalizeApps(selectedAppsFromDraft(localAppsDraft))
     if (apps.length === 0) {
-      toast.error("请至少选择一个目标应用")
+      toast.error(t("toasts.selectAtLeastOneApp"))
       return
     }
 
@@ -510,7 +545,7 @@ export function McpSettings() {
         apps,
       })
       const next = await refreshLocalServers()
-      toast.success("保存成功")
+      toast.success(t("toasts.saveSuccess"))
 
       const updated = next.find((item) => item.id === selectedLocal.id)
       if (updated) {
@@ -520,11 +555,11 @@ export function McpSettings() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      toast.error(`保存失败：${message}`)
+      toast.error(t("toasts.saveFailed", { message }))
     } finally {
       setRunningAction(null)
     }
-  }, [localAppsDraft, localSpecText, refreshLocalServers, selectedLocal])
+  }, [localAppsDraft, localSpecText, refreshLocalServers, selectedLocal, t])
 
   const switchInstallOption = useCallback(
     (optionId: string) => {
@@ -562,7 +597,8 @@ export function McpSettings() {
 
     const parsedParams = parseParameterValues(
       selectedInstallOption,
-      installParamDraft
+      installParamDraft,
+      mcpT
     )
     if (parsedParams.error) {
       toast.error(parsedParams.error)
@@ -578,7 +614,11 @@ export function McpSettings() {
     const currentSpecText = marketSpecText.trim()
     if (marketSpecDirty && currentSpecText !== baselineText) {
       try {
-        specOverride = parseJsonObject(marketSpecText, "安装配置")
+        specOverride = parseJsonObject(
+          marketSpecText,
+          t("jsonNames.installConfig"),
+          mcpT
+        )
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         toast.error(message)
@@ -588,7 +628,7 @@ export function McpSettings() {
 
     const apps = normalizeApps(selectedAppsFromDraft(installAppsDraft))
     if (apps.length === 0) {
-      toast.error("请至少选择一个目标应用")
+      toast.error(t("toasts.selectAtLeastOneApp"))
       return
     }
 
@@ -606,7 +646,7 @@ export function McpSettings() {
         specOverride,
       })
       const nextLocal = await refreshLocalServers()
-      toast.success(`已安装 ${marketDetail.name}`)
+      toast.success(t("toasts.installed", { name: marketDetail.name }))
       setInstallDialogOpen(false)
       setLeftTab("local")
 
@@ -618,7 +658,7 @@ export function McpSettings() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      toast.error(`安装失败：${message}`)
+      toast.error(t("toasts.installFailed", { message }))
     } finally {
       setRunningAction(null)
     }
@@ -630,13 +670,14 @@ export function McpSettings() {
     marketSpecText,
     refreshLocalServers,
     selectedInstallOption,
+    t,
   ])
 
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        加载中...
+        {t("loading")}
       </div>
     )
   }
@@ -646,28 +687,35 @@ export function McpSettings() {
       <Dialog open={installDialogOpen} onOpenChange={setInstallDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认安装 MCP</DialogTitle>
+            <DialogTitle>{t("installDialog.title")}</DialogTitle>
             <DialogDescription>
               {marketDetail
-                ? `将 ${marketDetail.name} 安装到本地配置。`
-                : "选择安装目标应用。"}
+                ? t("installDialog.descriptionWithName", {
+                    name: marketDetail.name,
+                  })
+                : t("installDialog.description")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 text-sm">
             <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">协议</div>
+              <div className="text-xs text-muted-foreground">
+                {t("installDialog.protocol")}
+              </div>
               <Select
                 value={selectedInstallOption?.id ?? ""}
                 onValueChange={switchInstallOption}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="选择协议" />
+                  <SelectValue
+                    placeholder={t("installDialog.selectProtocol")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {(marketDetail?.install_options ?? []).map((option) => (
                     <SelectItem key={option.id} value={option.id}>
-                      {protocolBadgeLabel(option.protocol)} · {option.label}
+                      {protocolBadgeLabel(option.protocol, mcpT)} ·{" "}
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -676,7 +724,9 @@ export function McpSettings() {
 
             {selectedInstallOption?.parameters.length ? (
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">配置参数</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("installDialog.parameters")}
+                </div>
                 <div className="max-h-56 overflow-auto space-y-2 pr-1">
                   {selectedInstallOption.parameters.map((field) => {
                     const raw = installParamDraft[field.key] ?? ""
@@ -704,7 +754,11 @@ export function McpSettings() {
                             }
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="请选择 true/false" />
+                              <SelectValue
+                                placeholder={t(
+                                  "installDialog.booleanPlaceholder"
+                                )}
+                              />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="true">true</SelectItem>
@@ -722,7 +776,9 @@ export function McpSettings() {
                             }
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="选择一个值" />
+                              <SelectValue
+                                placeholder={t("installDialog.selectOneValue")}
+                              />
                             </SelectTrigger>
                             <SelectContent>
                               {field.enum_values.map((value) => (
@@ -770,7 +826,9 @@ export function McpSettings() {
             ) : null}
 
             <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">目标应用</div>
+              <div className="text-xs text-muted-foreground">
+                {t("installDialog.targetApps")}
+              </div>
               {APP_OPTIONS.map((app) => (
                 <label
                   key={app.value}
@@ -798,7 +856,7 @@ export function McpSettings() {
               onClick={() => setInstallDialogOpen(false)}
               disabled={Boolean(runningAction?.startsWith("install:"))}
             >
-              取消
+              {t("actions.cancel")}
             </Button>
             <Button
               onClick={() => {
@@ -811,10 +869,10 @@ export function McpSettings() {
               {runningAction?.startsWith("install:") ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  安装中
+                  {t("actions.installing")}
                 </>
               ) : (
-                "确认安装"
+                t("actions.confirmInstall")
               )}
             </Button>
           </DialogFooter>
@@ -830,10 +888,10 @@ export function McpSettings() {
           >
             <TabsList className="w-full">
               <TabsTrigger value="local" className="flex-1">
-                本地 MCP
+                {t("tabs.local")}
               </TabsTrigger>
               <TabsTrigger value="market" className="flex-1">
-                MCP 市场
+                {t("tabs.market")}
               </TabsTrigger>
             </TabsList>
 
@@ -842,7 +900,7 @@ export function McpSettings() {
                 <Input
                   value={localFilter}
                   onChange={(event) => setLocalFilter(event.target.value)}
-                  placeholder="筛选本地 MCP..."
+                  placeholder={t("local.filterPlaceholder")}
                 />
                 <Button
                   size="icon"
@@ -859,14 +917,14 @@ export function McpSettings() {
 
               {loadingError ? (
                 <div className="rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-400">
-                  加载失败：{loadingError}
+                  {t("local.loadFailed", { message: loadingError })}
                 </div>
               ) : null}
 
               <div className="h-[calc(100%-48px)] overflow-auto space-y-1">
                 {filteredLocalServers.length === 0 ? (
                   <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                    当前未检测到本地 MCP。
+                    {t("local.empty")}
                   </div>
                 ) : (
                   filteredLocalServers.map((server) => {
@@ -891,7 +949,7 @@ export function McpSettings() {
                               {server.id}
                             </div>
                             <div className="text-xs text-muted-foreground line-clamp-2 break-all">
-                              {specSummary(spec)}
+                              {specSummary(spec, mcpT)}
                             </div>
                           </button>
                         </ContextMenuTrigger>
@@ -907,7 +965,7 @@ export function McpSettings() {
                               })
                             }}
                           >
-                            卸载
+                            {t("actions.uninstall")}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       </ContextMenu>
@@ -924,7 +982,7 @@ export function McpSettings() {
                   onValueChange={setSelectedProvider}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="选择市场" />
+                    <SelectValue placeholder={t("market.selectMarketplace")} />
                   </SelectTrigger>
                   <SelectContent>
                     {providers.map((provider) => (
@@ -939,7 +997,7 @@ export function McpSettings() {
                   <Input
                     value={marketQuery}
                     onChange={(event) => setMarketQuery(event.target.value)}
-                    placeholder="搜索 MCP..."
+                    placeholder={t("market.searchPlaceholder")}
                     onKeyDown={(event) => {
                       if (event.key !== "Enter") return
                       executeSearch({
@@ -978,7 +1036,7 @@ export function McpSettings() {
 
               {searchError ? (
                 <div className="rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-400">
-                  搜索失败：{searchError}
+                  {t("market.searchFailed", { message: searchError })}
                 </div>
               ) : null}
 
@@ -986,11 +1044,11 @@ export function McpSettings() {
                 {searching ? (
                   <div className="h-full min-h-24 rounded-md border border-dashed flex items-center justify-center gap-2 text-xs text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    加载 MCP 列表...
+                    {t("market.loadingList")}
                   </div>
                 ) : searchResults.length === 0 ? (
                   <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                    暂无 MCP 结果。
+                    {t("market.empty")}
                   </div>
                 ) : (
                   searchResults.map((item) => {
@@ -1048,7 +1106,7 @@ export function McpSettings() {
                                   variant="secondary"
                                   className="text-[10px]"
                                 >
-                                  {protocolBadgeLabel(protocol)}
+                                  {protocolBadgeLabel(protocol, mcpT)}
                                 </Badge>
                               ))}
                               {item.latest_version ? (
@@ -1060,14 +1118,16 @@ export function McpSettings() {
                                 </Badge>
                               ) : null}
                               {item.verified ? (
-                                <Badge className="text-[10px]">Verified</Badge>
+                                <Badge className="text-[10px]">
+                                  {t("badges.verified")}
+                                </Badge>
                               ) : null}
                               {typeof item.downloads === "number" ? (
                                 <Badge
                                   variant="outline"
                                   className="text-[10px]"
                                 >
-                                  {item.downloads} uses
+                                  {t("badges.uses", { count: item.downloads })}
                                 </Badge>
                               ) : null}
                             </div>
@@ -1082,7 +1142,7 @@ export function McpSettings() {
                               })
                             }}
                           >
-                            查看详情
+                            {t("actions.viewDetails")}
                           </ContextMenuItem>
                         </ContextMenuContent>
                       </ContextMenu>
@@ -1103,7 +1163,7 @@ export function McpSettings() {
                     {selectedLocal.id}
                   </h2>
                   <p className="text-xs text-muted-foreground mt-1">
-                    本地 MCP 配置可直接编辑并保存。
+                    {t("local.description")}
                   </p>
                 </div>
                 <Button
@@ -1118,16 +1178,18 @@ export function McpSettings() {
                   {runningAction === `uninstall:${selectedLocal.id}` ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      卸载中
+                      {t("actions.uninstalling")}
                     </>
                   ) : (
-                    "卸载"
+                    t("actions.uninstall")
                   )}
                 </Button>
               </div>
 
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">启用应用</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("local.enabledApps")}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {APP_OPTIONS.map((app) => (
                     <label
@@ -1152,7 +1214,7 @@ export function McpSettings() {
 
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">
-                  MCP 配置(JSON)
+                  {t("local.configJson")}
                 </div>
                 <Textarea
                   value={localSpecText}
@@ -1173,10 +1235,10 @@ export function McpSettings() {
                   {runningAction === `save:${selectedLocal.id}` ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      保存中
+                      {t("actions.saving")}
                     </>
                   ) : (
-                    "保存"
+                    t("actions.save")
                   )}
                 </Button>
               </div>
@@ -1188,11 +1250,11 @@ export function McpSettings() {
               {marketDetailLoading ? (
                 <div className="h-40 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  加载市场详情...
+                  {t("market.loadingDetail")}
                 </div>
               ) : marketDetailError ? (
                 <div className="rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-400">
-                  加载详情失败：{marketDetailError}
+                  {t("market.detailLoadFailed", { message: marketDetailError })}
                 </div>
               ) : marketDetail ? (
                 <>
@@ -1221,20 +1283,24 @@ export function McpSettings() {
                         </p>
                       </div>
                     </div>
-                    <Button onClick={openInstallDialog}>安装</Button>
+                    <Button onClick={openInstallDialog}>
+                      {t("actions.install")}
+                    </Button>
                   </div>
 
                   <div className="flex flex-wrap gap-1.5">
-                    {marketDetail.verified ? <Badge>Verified</Badge> : null}
+                    {marketDetail.verified ? (
+                      <Badge>{t("badges.verified")}</Badge>
+                    ) : null}
                     {marketDetail.remote ? (
-                      <Badge variant="secondary">Remote</Badge>
+                      <Badge variant="secondary">{t("badges.remote")}</Badge>
                     ) : null}
                     {marketDetail.homepage ? (
-                      <Badge variant="outline">Has Homepage</Badge>
+                      <Badge variant="outline">{t("badges.hasHomepage")}</Badge>
                     ) : null}
                     {marketDetail.protocols.map((protocol) => (
                       <Badge key={`detail-${protocol}`} variant="secondary">
-                        {protocolBadgeLabel(protocol)}
+                        {protocolBadgeLabel(protocol, mcpT)}
                       </Badge>
                     ))}
                     {marketDetail.latest_version ? (
@@ -1244,7 +1310,7 @@ export function McpSettings() {
                     ) : null}
                     {typeof marketDetail.downloads === "number" ? (
                       <Badge variant="outline">
-                        {marketDetail.downloads} uses
+                        {t("badges.uses", { count: marketDetail.downloads })}
                       </Badge>
                     ) : null}
                   </div>
@@ -1268,52 +1334,59 @@ export function McpSettings() {
                     {marketDetail.owner ? (
                       <div className="inline-flex items-center gap-1.5">
                         <ShieldCheck className="h-3.5 w-3.5" />
-                        Owner: {marketDetail.owner}
+                        {t("market.owner", { owner: marketDetail.owner })}
                       </div>
                     ) : null}
                     {marketDetail.namespace ? (
                       <div className="inline-flex items-center gap-1.5">
                         <TerminalSquare className="h-3.5 w-3.5" />
-                        Namespace: {marketDetail.namespace}
+                        {t("market.namespace", {
+                          namespace: marketDetail.namespace,
+                        })}
                       </div>
                     ) : null}
                     {marketDetail.is_deployed != null ? (
                       <div className="inline-flex items-center gap-1.5">
                         <Globe className="h-3.5 w-3.5" />
-                        {marketDetail.is_deployed ? "Deployed" : "Not Deployed"}
+                        {marketDetail.is_deployed
+                          ? t("badges.deployed")
+                          : t("badges.notDeployed")}
                       </div>
                     ) : null}
                   </div>
 
                   <div className="space-y-2">
                     <div className="text-xs text-muted-foreground">
-                      默认安装协议
+                      {t("market.defaultInstallProtocol")}
                     </div>
                     <Select
                       value={selectedInstallOption?.id ?? ""}
                       onValueChange={switchInstallOption}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="选择协议" />
+                        <SelectValue
+                          placeholder={t("installDialog.selectProtocol")}
+                        />
                       </SelectTrigger>
                       <SelectContent>
                         {marketDetail.install_options.map((option) => (
                           <SelectItem key={option.id} value={option.id}>
-                            {protocolBadgeLabel(option.protocol)} ·{" "}
+                            {protocolBadgeLabel(option.protocol, mcpT)} ·{" "}
                             {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <div className="text-[11px] text-muted-foreground">
-                      当前选项参数数：
-                      {selectedInstallOption?.parameters.length ?? 0}
+                      {t("market.currentOptionParameterCount", {
+                        count: selectedInstallOption?.parameters.length ?? 0,
+                      })}
                     </div>
                   </div>
 
                   <div className="space-y-2">
                     <div className="text-xs text-muted-foreground">
-                      安装配置(JSON，可修改后安装；修改后将覆盖协议/参数表单)
+                      {t("market.installConfigDescription")}
                     </div>
                     <Textarea
                       value={marketSpecText}
@@ -1327,7 +1400,7 @@ export function McpSettings() {
                 </>
               ) : (
                 <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                  请选择左侧市场 MCP 查看详情。
+                  {t("market.selectLeftToView")}
                 </div>
               )}
             </div>
@@ -1335,7 +1408,7 @@ export function McpSettings() {
 
           {!selection ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-              请选择左侧 MCP。
+              {t("selectLeftMcp")}
             </div>
           ) : null}
         </section>

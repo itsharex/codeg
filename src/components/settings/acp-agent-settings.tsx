@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react"
 import { Reorder, useDragControls } from "motion/react"
+import { useTranslations } from "next-intl"
 import { useSearchParams } from "next/navigation"
 import {
   AlertCircle,
@@ -143,6 +144,22 @@ interface UiCheckItem {
   status: CheckStatus
   message: string
   fixes: UiFixAction[]
+}
+
+type AcpTranslator = (
+  key: string,
+  values?: Record<string, string | number>
+) => string
+
+let acpTranslator: AcpTranslator | null = null
+
+function acpText(
+  key: string,
+  fallback: string,
+  values?: Record<string, string | number>
+): string {
+  if (!acpTranslator) return fallback
+  return acpTranslator(key, values)
 }
 
 function statusTone(status: CheckStatus): string {
@@ -282,12 +299,25 @@ function parseConfigJsonText(configText: string): ConfigParseResult {
   try {
     const parsed = JSON.parse(trimmed) as unknown
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { config: {}, error: "原生 JSON 配置必须是对象" }
+      return {
+        config: {},
+        error: acpText(
+          "errors.nativeJsonMustBeObject",
+          "Native JSON config must be an object"
+        ),
+      }
     }
     return { config: parsed as Record<string, unknown>, error: null }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return { config: {}, error: `原生 JSON 配置格式错误：${message}` }
+    return {
+      config: {},
+      error: acpText(
+        "errors.nativeJsonInvalid",
+        "Native JSON config format error: {message}",
+        { message }
+      ),
+    }
   }
 }
 
@@ -305,14 +335,24 @@ function parseOpenCodeAuthJsonText(authJsonText: string): {
   try {
     const parsed = JSON.parse(trimmed) as unknown
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { authObject: null, error: "OpenCode auth.json 必须是 JSON 对象" }
+      return {
+        authObject: null,
+        error: acpText(
+          "errors.openCodeAuthMustBeObject",
+          "OpenCode auth.json must be a JSON object"
+        ),
+      }
     }
     return { authObject: parsed as Record<string, unknown>, error: null }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     return {
       authObject: null,
-      error: `OpenCode auth.json 格式错误：${message}`,
+      error: acpText(
+        "errors.openCodeAuthInvalid",
+        "OpenCode auth.json format error: {message}",
+        { message }
+      ),
     }
   }
 }
@@ -713,31 +753,54 @@ function patchGeminiAuthMode(
 }
 
 function geminiAuthModeLabel(mode: GeminiAuthMode): string {
-  if (mode === "custom") return "自定义接口"
-  if (mode === "login_google") return "Google 登录（OAuth）"
+  if (mode === "custom") return acpText("gemini.mode.custom", "Custom Endpoint")
+  if (mode === "login_google")
+    return acpText("gemini.mode.loginGoogle", "Google Login (OAuth)")
   if (mode === "gemini_api_key") return "Gemini API Key"
-  if (mode === "vertex_adc") return "Vertex AI（ADC）"
-  if (mode === "vertex_service_account") return "Vertex AI（服务账号）"
+  if (mode === "vertex_adc") return "Vertex AI (ADC)"
+  if (mode === "vertex_service_account")
+    return acpText(
+      "gemini.mode.vertexServiceAccount",
+      "Vertex AI (Service Account)"
+    )
   return "Vertex AI API Key"
 }
 
 function geminiAuthModeHint(mode: GeminiAuthMode): string {
   if (mode === "custom") {
-    return "填写 API URL、API Key 和 Model，分别映射到 GOOGLE_GEMINI_BASE_URL / GEMINI_API_KEY / GEMINI_MODEL。"
+    return acpText(
+      "gemini.hint.custom",
+      "Fill API URL, API Key and Model, mapped to GOOGLE_GEMINI_BASE_URL / GEMINI_API_KEY / GEMINI_MODEL."
+    )
   }
   if (mode === "login_google") {
-    return "首次在终端运行 gemini 并完成 Google 登录；无需填写 API Key。"
+    return acpText(
+      "gemini.hint.loginGoogle",
+      "Run gemini in terminal and complete Google login first; API key is not required."
+    )
   }
   if (mode === "gemini_api_key") {
-    return "使用 Gemini API 时填写 GEMINI_API_KEY。"
+    return acpText(
+      "gemini.hint.geminiApiKey",
+      "Fill GEMINI_API_KEY when using Gemini API."
+    )
   }
   if (mode === "vertex_adc") {
-    return "使用 gcloud ADC，建议填写 GOOGLE_CLOUD_PROJECT 与 GOOGLE_CLOUD_LOCATION。"
+    return acpText(
+      "gemini.hint.vertexAdc",
+      "Use gcloud ADC; GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION are recommended."
+    )
   }
   if (mode === "vertex_service_account") {
-    return "服务账号 JSON 路径写入 GOOGLE_APPLICATION_CREDENTIALS。"
+    return acpText(
+      "gemini.hint.vertexServiceAccount",
+      "Set service account JSON path to GOOGLE_APPLICATION_CREDENTIALS."
+    )
   }
-  return "使用 Vertex AI API key 时填写 GOOGLE_API_KEY。"
+  return acpText(
+    "gemini.hint.vertexApiKey",
+    "Fill GOOGLE_API_KEY when using Vertex AI API key."
+  )
 }
 
 function normalizeConfigText(configText: string): string {
@@ -1192,12 +1255,27 @@ function parseCodexAuthJsonObject(authJsonText: string): {
   try {
     const parsed = JSON.parse(trimmed) as unknown
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { authObject: null, error: "auth.json 必须是 JSON 对象" }
+      return {
+        authObject: null,
+        error: acpText(
+          "errors.authMustBeObject",
+          "auth.json must be a JSON object"
+        ),
+      }
     }
     return { authObject: parsed as Record<string, unknown>, error: null }
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    return { authObject: null, error: `auth.json 格式错误：${message}` }
+    return {
+      authObject: null,
+      error: acpText(
+        "errors.authInvalid",
+        "auth.json format error: {message}",
+        {
+          message,
+        }
+      ),
+    }
   }
 }
 
@@ -1953,8 +2031,13 @@ function buildVersionCheck(agent: AcpAgentInfo): UiCheckItem | null {
     return null
 
   const remoteVersion = agent.registry_version ?? "unknown"
-  const localVersion = agent.installed_version ?? "未安装"
-  const versionText = `远程：${remoteVersion} · 本地：${localVersion}`
+  const localVersion =
+    agent.installed_version ?? acpText("version.notInstalled", "Not installed")
+  const versionText = acpText(
+    "version.remoteLocal",
+    "Remote: {remoteVersion} · Local: {localVersion}",
+    { remoteVersion, localVersion }
+  )
   const installAction: RunningActionKind =
     agent.distribution_type === "binary"
       ? "download_binary"
@@ -1977,9 +2060,13 @@ function buildVersionCheck(agent: AcpAgentInfo): UiCheckItem | null {
   if (!agent.available) {
     return {
       check_id: "version_status",
-      label: "版本状态",
+      label: acpText("version.statusLabel", "Version Status"),
       status: "fail",
-      message: `${versionText}。当前平台不支持该 Agent。`,
+      message: acpText(
+        "version.platformUnsupported",
+        "{versionText}. Current platform does not support this agent.",
+        { versionText }
+      ),
       fixes: [],
     }
   }
@@ -1987,12 +2074,16 @@ function buildVersionCheck(agent: AcpAgentInfo): UiCheckItem | null {
   if (!agent.installed_version) {
     return {
       check_id: "version_status",
-      label: "版本状态",
+      label: acpText("version.statusLabel", "Version Status"),
       status: "fail",
-      message: `${versionText}。请点击右侧安装。`,
+      message: acpText(
+        "version.clickInstall",
+        "{versionText}. Click Install on the right.",
+        { versionText }
+      ),
       fixes: [
         {
-          label: "安装",
+          label: acpText("actions.install", "Install"),
           kind: installAction,
           payload: agent.agent_type,
         },
@@ -2007,17 +2098,21 @@ function buildVersionCheck(agent: AcpAgentInfo): UiCheckItem | null {
   ) {
     return {
       check_id: "version_status",
-      label: "版本状态",
+      label: acpText("version.statusLabel", "Version Status"),
       status: "warn",
-      message: `${versionText}。本地版本无法识别，可尝试升级覆盖安装。`,
+      message: acpText(
+        "version.localUnrecognized",
+        "{versionText}. Local version is not comparable; try upgrade to overwrite install.",
+        { versionText }
+      ),
       fixes: [
         {
-          label: "升级",
+          label: acpText("actions.upgrade", "Upgrade"),
           kind: upgradeAction,
           payload: agent.agent_type,
         },
         {
-          label: "卸载",
+          label: acpText("actions.uninstall", "Uninstall"),
           kind: uninstallAction,
           payload: agent.agent_type,
         },
@@ -2032,17 +2127,21 @@ function buildVersionCheck(agent: AcpAgentInfo): UiCheckItem | null {
   ) {
     return {
       check_id: "version_status",
-      label: "版本状态",
+      label: acpText("version.statusLabel", "Version Status"),
       status: "warn",
-      message: `${versionText}。发现可升级版本。`,
+      message: acpText(
+        "version.upgradeAvailable",
+        "{versionText}. Upgrade available.",
+        { versionText }
+      ),
       fixes: [
         {
-          label: "升级",
+          label: acpText("actions.upgrade", "Upgrade"),
           kind: upgradeAction,
           payload: agent.agent_type,
         },
         {
-          label: "卸载",
+          label: acpText("actions.uninstall", "Uninstall"),
           kind: uninstallAction,
           payload: agent.agent_type,
         },
@@ -2053,12 +2152,16 @@ function buildVersionCheck(agent: AcpAgentInfo): UiCheckItem | null {
   if (!agent.registry_version) {
     return {
       check_id: "version_status",
-      label: "版本状态",
+      label: acpText("version.statusLabel", "Version Status"),
       status: "warn",
-      message: `${versionText}。远程版本暂不可用。`,
+      message: acpText(
+        "version.remoteUnavailable",
+        "{versionText}. Remote version is currently unavailable.",
+        { versionText }
+      ),
       fixes: [
         {
-          label: "卸载",
+          label: acpText("actions.uninstall", "Uninstall"),
           kind: uninstallAction,
           payload: agent.agent_type,
         },
@@ -2068,12 +2171,14 @@ function buildVersionCheck(agent: AcpAgentInfo): UiCheckItem | null {
 
   return {
     check_id: "version_status",
-    label: "版本状态",
+    label: acpText("version.statusLabel", "Version Status"),
     status: "pass",
-    message: `${versionText}。已是最新版本。`,
+    message: acpText("version.latest", "{versionText}. Already latest.", {
+      versionText,
+    }),
     fixes: [
       {
-        label: "卸载",
+        label: acpText("actions.uninstall", "Uninstall"),
         kind: uninstallAction,
         payload: agent.agent_type,
       },
@@ -2165,6 +2270,9 @@ function AgentReorderItem({
 }
 
 export function AcpAgentSettings() {
+  const t = useTranslations("AcpAgentSettings")
+  const rawTranslator = t as unknown as AcpTranslator
+  acpTranslator = (key, values) => rawTranslator(key, values)
   const searchParams = useSearchParams()
   const [agents, setAgents] = useState<AcpAgentInfo[]>([])
   const [loadingAgents, setLoadingAgents] = useState(true)
@@ -2498,17 +2606,25 @@ export function AcpAgentSettings() {
           )
         )
         toast.success(
-          `${agent.name}${mode === "upgrade" ? "升级" : "安装"}完成`,
+          t("toasts.agentActionCompleted", {
+            name: agent.name,
+            action:
+              mode === "upgrade" ? t("actions.upgrade") : t("actions.install"),
+          }),
           {
             description: detectedVersion
-              ? `本地版本：${detectedVersion}`
-              : "安装完成，版本将在下一次检测时更新",
+              ? t("toasts.localVersion", { version: detectedVersion })
+              : t("toasts.installCompletedVersionLater"),
           }
         )
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         toast.error(
-          `${agent.name}${mode === "upgrade" ? "升级" : "安装"}失败`,
+          t("toasts.agentActionFailed", {
+            name: agent.name,
+            action:
+              mode === "upgrade" ? t("actions.upgrade") : t("actions.install"),
+          }),
           {
             description: message,
           }
@@ -2523,7 +2639,7 @@ export function AcpAgentSettings() {
         }))
       }
     },
-    [runPreflight]
+    [runPreflight, t]
   )
 
   const runNpxAction = useCallback(
@@ -2562,17 +2678,25 @@ export function AcpAgentSettings() {
         }
         const finalVersion = detectedVersion ?? installedVersion
         toast.success(
-          `${agent.name}${mode === "upgrade" ? "升级" : "安装"}完成`,
+          t("toasts.agentActionCompleted", {
+            name: agent.name,
+            action:
+              mode === "upgrade" ? t("actions.upgrade") : t("actions.install"),
+          }),
           {
             description: finalVersion
-              ? `本地版本：${finalVersion}`
-              : "安装完成，版本将在下一次检测时更新",
+              ? t("toasts.localVersion", { version: finalVersion })
+              : t("toasts.installCompletedVersionLater"),
           }
         )
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         toast.error(
-          `${agent.name}${mode === "upgrade" ? "升级" : "安装"}失败`,
+          t("toasts.agentActionFailed", {
+            name: agent.name,
+            action:
+              mode === "upgrade" ? t("actions.upgrade") : t("actions.install"),
+          }),
           {
             description: message,
           }
@@ -2587,7 +2711,7 @@ export function AcpAgentSettings() {
         }))
       }
     },
-    [runPreflight]
+    [runPreflight, t]
   )
 
   const runUvxAction = useCallback(
@@ -2626,17 +2750,25 @@ export function AcpAgentSettings() {
         }
         const finalVersion = detectedVersion ?? installedVersion
         toast.success(
-          `${agent.name}${mode === "upgrade" ? "升级" : "安装"}完成`,
+          t("toasts.agentActionCompleted", {
+            name: agent.name,
+            action:
+              mode === "upgrade" ? t("actions.upgrade") : t("actions.install"),
+          }),
           {
             description: finalVersion
-              ? `本地版本：${finalVersion}`
-              : "安装完成，版本将在下一次检测时更新",
+              ? t("toasts.localVersion", { version: finalVersion })
+              : t("toasts.installCompletedVersionLater"),
           }
         )
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         toast.error(
-          `${agent.name}${mode === "upgrade" ? "升级" : "安装"}失败`,
+          t("toasts.agentActionFailed", {
+            name: agent.name,
+            action:
+              mode === "upgrade" ? t("actions.upgrade") : t("actions.install"),
+          }),
           {
             description: message,
           }
@@ -2651,7 +2783,7 @@ export function AcpAgentSettings() {
         }))
       }
     },
-    [runPreflight]
+    [runPreflight, t]
   )
 
   const runUninstallAction = useCallback(
@@ -2678,12 +2810,12 @@ export function AcpAgentSettings() {
           )
         )
         await runPreflight(agent.agent_type)
-        toast.success(`${agent.name}卸载完成`, {
-          description: "本地版本已移除",
+        toast.success(t("toasts.uninstallCompleted", { name: agent.name }), {
+          description: t("toasts.localVersionRemoved"),
         })
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        toast.error(`${agent.name}卸载失败`, {
+        toast.error(t("toasts.uninstallFailed", { name: agent.name }), {
           description: message,
         })
         throw err
@@ -2696,7 +2828,7 @@ export function AcpAgentSettings() {
         }))
       }
     },
-    [runPreflight]
+    [runPreflight, t]
   )
 
   const handleFixAction = async (agent: AcpAgentInfo, action: UiFixAction) => {
@@ -2770,7 +2902,7 @@ export function AcpAgentSettings() {
       } catch (err) {
         console.error("[Settings] reorder agents failed:", err)
         const message = err instanceof Error ? err.message : String(err)
-        toast.error("保存 Agent 排序失败", {
+        toast.error(t("toasts.saveAgentOrderFailed"), {
           description: message,
         })
         await refreshAgents()
@@ -2778,7 +2910,7 @@ export function AcpAgentSettings() {
         setReordering(false)
       }
     },
-    [refreshAgents]
+    [refreshAgents, t]
   )
 
   const handleReorder = useCallback((next: AcpAgentInfo[]) => {
@@ -3047,7 +3179,7 @@ export function AcpAgentSettings() {
         claudeDefaultOpusModel: important.claudeDefaultOpusModel,
       }))
     },
-    [selectedAgent, selectedDraft, updateSelectedDraft]
+    [selectedAgent, selectedDraft, t, updateSelectedDraft]
   )
 
   const handleImportantConfigChange = useCallback(
@@ -3060,7 +3192,7 @@ export function AcpAgentSettings() {
         buildImportantPatchFromDraft(nextDraft)
       )
       if (nextJson.recoveredFromInvalid) {
-        toast.warning("原生 JSON 配置格式无效，已重置为结构化配置")
+        toast.warning(t("warnings.nativeJsonRecoveredStructured"))
       }
       setConfigErrors((prev) => ({
         ...prev,
@@ -3130,7 +3262,7 @@ export function AcpAgentSettings() {
           normalizedValues.googleApplicationCredentials,
       })
       if (nextConfig.recoveredFromInvalid) {
-        toast.warning("原生 JSON 配置格式无效，已重置为结构化配置")
+        toast.warning(t("warnings.nativeJsonRecoveredStructured"))
       }
       setConfigErrors((prev) => ({
         ...prev,
@@ -3203,7 +3335,7 @@ export function AcpAgentSettings() {
         googleApplicationCredentials: patched.googleApplicationCredentials,
       })
       if (nextConfig.recoveredFromInvalid) {
-        toast.warning("原生 JSON 配置格式无效，已重置为结构化配置")
+        toast.warning(t("warnings.nativeJsonRecoveredStructured"))
       }
       setConfigErrors((prev) => ({
         ...prev,
@@ -3261,7 +3393,7 @@ export function AcpAgentSettings() {
         }),
       }))
     },
-    [selectedAgent, selectedDraft, updateSelectedDraft]
+    [selectedAgent, selectedDraft, t, updateSelectedDraft]
   )
 
   const handleOpenCodeConfigPatch = useCallback(
@@ -3277,7 +3409,7 @@ export function AcpAgentSettings() {
         mutator
       )
       if (nextConfig.recoveredFromInvalid) {
-        toast.warning("原生 JSON 配置格式无效，已重置为 OpenCode 结构化配置")
+        toast.warning(t("warnings.nativeJsonRecoveredOpenCode"))
       }
       setConfigErrors((prev) => ({
         ...prev,
@@ -3293,7 +3425,7 @@ export function AcpAgentSettings() {
         model: parsed.model,
       }))
     },
-    [selectedAgent, selectedDraft, updateSelectedDraft]
+    [selectedAgent, selectedDraft, t, updateSelectedDraft]
   )
 
   const handleOpenCodeFieldChange = useCallback(
@@ -3315,11 +3447,11 @@ export function AcpAgentSettings() {
     const providerId = openCodeNewProviderId.trim()
     if (!providerId) return
     if (!/^[A-Za-z0-9_.-]+$/.test(providerId)) {
-      toast.error("Provider ID 仅支持字母、数字、下划线、点与中划线")
+      toast.error(t("errors.providerIdPattern"))
       return
     }
     if (selectedOpenCodeConfig.providerIds.includes(providerId)) {
-      toast.error(`Provider '${providerId}' 已存在`)
+      toast.error(t("errors.providerExists", { providerId }))
       return
     }
     handleOpenCodeConfigPatch((config) => {
@@ -3334,7 +3466,12 @@ export function AcpAgentSettings() {
     })
     setOpenCodeProviderId(providerId)
     setOpenCodeNewProviderId("")
-  }, [handleOpenCodeConfigPatch, openCodeNewProviderId, selectedOpenCodeConfig])
+  }, [
+    handleOpenCodeConfigPatch,
+    openCodeNewProviderId,
+    selectedOpenCodeConfig,
+    t,
+  ])
 
   const handleOpenCodeRemoveProvider = useCallback(
     (providerId: string) => {
@@ -3383,7 +3520,7 @@ export function AcpAgentSettings() {
         }
       )
       if (nextConfig.recoveredFromInvalid) {
-        toast.warning("原生 JSON 配置格式无效，已重置为 OpenCode 结构化配置")
+        toast.warning(t("warnings.nativeJsonRecoveredOpenCode"))
       }
 
       const nextAuth = patchOpenCodeAuthJsonText(
@@ -3393,7 +3530,7 @@ export function AcpAgentSettings() {
         }
       )
       if (nextAuth.recoveredFromInvalid) {
-        toast.warning("OpenCode auth.json 格式无效，已重置为默认配置")
+        toast.warning(t("warnings.openCodeAuthRecovered"))
       }
 
       const nextOpenCode = extractOpenCodeConfigValues(
@@ -3444,7 +3581,7 @@ export function AcpAgentSettings() {
         openCodeAuthJsonText: nextDraft.openCodeAuthJsonText,
       }
     },
-    [selectedAgent, selectedDraft]
+    [selectedAgent, selectedDraft, t]
   )
 
   const confirmOpenCodeProviderDelete = useCallback(() => {
@@ -3469,14 +3606,14 @@ export function AcpAgentSettings() {
       }
     )
       .then(() => {
-        toast.success(`Provider ${providerId} 已删除`, {
-          description: "OpenCode 配置与认证 JSON 已同步保存。",
+        toast.success(t("toasts.providerDeleted", { providerId }), {
+          description: t("toasts.openCodeConfigSynced"),
         })
       })
       .catch((err) => {
         console.error("[Settings] remove opencode provider failed:", err)
         const message = err instanceof Error ? err.message : String(err)
-        toast.error(`删除 Provider ${providerId} 失败`, {
+        toast.error(t("toasts.providerDeleteFailed", { providerId }), {
           description: message,
         })
       })
@@ -3485,6 +3622,7 @@ export function AcpAgentSettings() {
     openCodeDeleteProviderId,
     persistPreferences,
     selectedAgent,
+    t,
   ])
 
   const handleOpenCodeProviderStatusChange = useCallback(
@@ -3624,7 +3762,7 @@ export function AcpAgentSettings() {
       const targetProvider = selectedOpenCodeConfig.providers[targetProviderId]
       if (!targetProvider) return
       if (targetProvider.modelIds.includes(nextModelId)) {
-        toast.error(`Model '${nextModelId}' 已存在`)
+        toast.error(t("errors.modelExists", { modelId: nextModelId }))
         return
       }
       handleOpenCodeConfigPatch((config) => {
@@ -3652,7 +3790,7 @@ export function AcpAgentSettings() {
         [targetProviderId]: "",
       }))
     },
-    [handleOpenCodeConfigPatch, openCodeNewModelIds, selectedOpenCodeConfig]
+    [handleOpenCodeConfigPatch, openCodeNewModelIds, selectedOpenCodeConfig, t]
   )
 
   const handleOpenCodeRemoveModel = useCallback(
@@ -3717,14 +3855,14 @@ export function AcpAgentSettings() {
       }
 
       if (!/^[A-Za-z0-9_.:-]+$/.test(nextModelId)) {
-        toast.error("模型 ID 仅支持字母、数字、下划线、点、冒号与中划线")
+        toast.error(t("errors.modelIdPattern"))
         return
       }
 
       const targetProvider = selectedOpenCodeConfig.providers[targetProviderId]
       if (!targetProvider) return
       if (targetProvider.modelIds.includes(nextModelId)) {
-        toast.error(`Model '${nextModelId}' 已存在`)
+        toast.error(t("errors.modelExists", { modelId: nextModelId }))
         return
       }
 
@@ -3755,7 +3893,12 @@ export function AcpAgentSettings() {
         return next
       })
     },
-    [handleOpenCodeConfigPatch, openCodeModelIdDrafts, selectedOpenCodeConfig]
+    [
+      handleOpenCodeConfigPatch,
+      openCodeModelIdDrafts,
+      selectedOpenCodeConfig,
+      t,
+    ]
   )
 
   const handleOpenCodeModelFieldChange = useCallback(
@@ -3813,7 +3956,7 @@ export function AcpAgentSettings() {
         codexSupportsWebsockets: important.supportsWebsockets,
       }))
     },
-    [selectedAgent, selectedDraft, updateSelectedDraft]
+    [selectedAgent, selectedDraft, t, updateSelectedDraft]
   )
 
   const handleCodexConfigTomlTextChange = useCallback(
@@ -3871,7 +4014,7 @@ export function AcpAgentSettings() {
         codexConfigTomlText: nextToml,
       }))
     },
-    [selectedAgent, selectedDraft, updateSelectedDraft]
+    [selectedAgent, selectedDraft, t, updateSelectedDraft]
   )
 
   const handleCodexImportantConfigChange = useCallback(
@@ -3912,7 +4055,7 @@ export function AcpAgentSettings() {
                 })
               : selectedDraft.codexConfigTomlText
       if (nextAuth.recoveredFromInvalid) {
-        toast.warning("auth.json 格式无效，已重置为结构化配置")
+        toast.warning(t("warnings.authRecoveredStructured"))
       }
       const synced = extractCodexImportantValues(
         nextAuth.authJsonText,
@@ -3979,7 +4122,7 @@ export function AcpAgentSettings() {
     return (
       <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        加载 Agent 列表中...
+        {t("loadingAgents")}
       </div>
     )
   }
@@ -3988,10 +4131,9 @@ export function AcpAgentSettings() {
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between gap-3 pb-4">
         <div>
-          <h2 className="text-base font-semibold">Agent SDK管理</h2>
+          <h2 className="text-base font-semibold">{t("title")}</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            统一管理 Agent
-            的连接SDK、启用状态、环境变量、配置管理与版本预检信息。
+            {t("description")}
           </p>
         </div>
       </div>
@@ -4005,7 +4147,7 @@ export function AcpAgentSettings() {
       <div className="flex-1 min-h-0 grid gap-3 lg:grid-cols-[minmax(240px,320px)_1fr]">
         <div className="min-h-0 min-w-0 rounded-lg border bg-card flex flex-col overflow-hidden">
           <div className="border-b px-3 py-2 text-xs font-medium text-muted-foreground">
-            Agent 列表
+            {t("agentList")}
           </div>
           <Reorder.Group
             as="div"
@@ -4025,7 +4167,7 @@ export function AcpAgentSettings() {
                 isChecking ? "checking" : summary
               const statusLabel =
                 displaySummary === "unchecked"
-                  ? "未检测"
+                  ? t("status.unchecked")
                   : displaySummary === "checking"
                     ? "Checking"
                     : displaySummary.toUpperCase()
@@ -4071,8 +4213,10 @@ export function AcpAgentSettings() {
                         <button
                           type="button"
                           className="text-muted-foreground cursor-grab active:cursor-grabbing rounded p-0.5 hover:bg-muted"
-                          title="拖拽排序"
-                          aria-label={`拖拽排序 ${agent.name}`}
+                          title={t("actions.dragSort")}
+                          aria-label={t("actions.dragSortAgent", {
+                            name: agent.name,
+                          })}
                           onPointerDown={startDrag}
                           onClick={(event) => {
                             event.stopPropagation()
@@ -4091,8 +4235,10 @@ export function AcpAgentSettings() {
                         {draft.enabled && (
                           <span
                             className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"
-                            aria-label={`${agent.name} 已启用`}
-                            title="已启用"
+                            aria-label={t("status.agentEnabledAria", {
+                              name: agent.name,
+                            })}
+                            title={t("status.enabled")}
                           />
                         )}
                       </div>
@@ -4113,8 +4259,10 @@ export function AcpAgentSettings() {
                             <button
                               type="button"
                               className="inline-flex h-4 w-4 items-center justify-center rounded hover:bg-black/10 dark:hover:bg-white/10"
-                              title="刷新检测"
-                              aria-label={`刷新检测 ${agent.name}`}
+                              title={t("actions.refreshCheck")}
+                              aria-label={t("actions.refreshCheckAgent", {
+                                name: agent.name,
+                              })}
                               onClick={(event) => {
                                 event.stopPropagation()
                                 runPreflight(agent.agent_type).catch((err) => {
@@ -4160,11 +4308,17 @@ export function AcpAgentSettings() {
                       type="button"
                       role="switch"
                       aria-checked={selectedDraft.enabled}
-                      aria-label={`${selectedAgent.name} 启用`}
+                      aria-label={t("status.agentEnabledSwitch", {
+                        name: selectedAgent.name,
+                      })}
                       title={
                         selectedDraft.enabled
-                          ? `点击禁用 ${selectedAgent.name}`
-                          : `点击启用 ${selectedAgent.name}`
+                          ? t("actions.clickDisable", {
+                              name: selectedAgent.name,
+                            })
+                          : t("actions.clickEnable", {
+                              name: selectedAgent.name,
+                            })
                       }
                       disabled={selectedIsSaving}
                       className={cn(
@@ -4202,7 +4356,7 @@ export function AcpAgentSettings() {
                           )
                           const message =
                             err instanceof Error ? err.message : String(err)
-                          toast.error("保存 Agent 开关失败", {
+                          toast.error(t("toasts.saveAgentSwitchFailed"), {
                             description: message,
                           })
                         })
@@ -4234,7 +4388,7 @@ export function AcpAgentSettings() {
                   )}
                   <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                     <CheckCircle2 className="h-3 w-3" />
-                    预检项：{selectedChecks.length}
+                    {t("preflight.count", { count: selectedChecks.length })}
                   </div>
                   {selectedChecks.length > 0 ? (
                     selectedChecks.map((check) =>
@@ -4242,13 +4396,13 @@ export function AcpAgentSettings() {
                     )
                   ) : (
                     <div className="text-xs text-muted-foreground">
-                      尚未执行检测。
+                      {t("preflight.notRun")}
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium">环境变量</label>
+                  <label className="text-xs font-medium">{t("envVars")}</label>
                   <div className="relative group">
                     <Textarea
                       value={selectedDraft.envText}
@@ -4285,7 +4439,7 @@ export function AcpAgentSettings() {
                           )
                           const message =
                             err instanceof Error ? err.message : String(err)
-                          toast.error("保存环境变量失败", {
+                          toast.error(t("toasts.saveEnvFailed"), {
                             description: message,
                           })
                         })
@@ -4295,12 +4449,12 @@ export function AcpAgentSettings() {
                       {selectedIsSaving ? (
                         <>
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          保存中...
+                          {t("actions.saving")}
                         </>
                       ) : (
                         <>
                           <Save className="h-3.5 w-3.5" />
-                          保存环境变量
+                          {t("actions.saveEnvVars")}
                         </>
                       )}
                     </Button>
@@ -4310,10 +4464,11 @@ export function AcpAgentSettings() {
                 {selectedAgent.agent_type === "codex" ? (
                   <div className="space-y-3 rounded-md border bg-muted/10 p-3">
                     <div>
-                      <label className="text-xs font-medium">配置管理</label>
+                      <label className="text-xs font-medium">
+                        {t("configManagement")}
+                      </label>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        支持 API URL、API Key、模型名称、Reasoning Effort
-                        快捷配置，并与 `auth.json` / `config.toml` 双向联动。
+                        {t("codex.configDescription")}
                       </p>
                     </div>
 
@@ -4326,7 +4481,9 @@ export function AcpAgentSettings() {
                         onValueChange={handleCodexModelProviderChange}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="选择 Provider" />
+                          <SelectValue
+                            placeholder={t("codex.selectProvider")}
+                          />
                         </SelectTrigger>
                         <SelectContent align="start">
                           {selectedDraft.codexProviderOptions.map(
@@ -4389,8 +4546,8 @@ export function AcpAgentSettings() {
                           }}
                           title={
                             showApiKeys[selectedAgent.agent_type]
-                              ? "隐藏 API Key"
-                              : "显示 API Key"
+                              ? t("actions.hideApiKey")
+                              : t("actions.showApiKey")
                           }
                         >
                           {showApiKeys[selectedAgent.agent_type] ? (
@@ -4404,7 +4561,7 @@ export function AcpAgentSettings() {
 
                     <div className="space-y-1.5">
                       <label className="text-[11px] text-muted-foreground">
-                        模型名称
+                        {t("codex.modelName")}
                       </label>
                       <Input
                         value={selectedDraft.model}
@@ -4432,7 +4589,9 @@ export function AcpAgentSettings() {
                         }}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="选择 Reasoning Effort" />
+                          <SelectValue
+                            placeholder={t("codex.selectReasoningEffort")}
+                          />
                         </SelectTrigger>
                         <SelectContent align="start">
                           {CODEX_REASONING_EFFORT_OPTIONS.map((option) => (
@@ -4451,19 +4610,19 @@ export function AcpAgentSettings() {
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between rounded-md border px-3 py-2">
                         <label className="text-[11px] text-muted-foreground">
-                          启用 WebSocket
+                          {t("codex.enableWebsocket")}
                         </label>
                         <Switch
                           checked={selectedDraft.codexSupportsWebsockets}
                           onCheckedChange={handleCodexSupportsWebsocketsChange}
-                          aria-label="Codex Provider 启用 WebSocket"
+                          aria-label={t("codex.enableWebsocketAria")}
                         />
                       </div>
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="text-[11px] text-muted-foreground">
-                        auth.json（原生）
+                        {t("codex.authJsonNative")}
                       </label>
                       <Textarea
                         value={selectedDraft.codexAuthJsonText}
@@ -4484,7 +4643,7 @@ export function AcpAgentSettings() {
 
                     <div className="space-y-1.5">
                       <label className="text-[11px] text-muted-foreground">
-                        config.toml（原生）
+                        {t("codex.configTomlNative")}
                       </label>
                       <Textarea
                         value={selectedDraft.codexConfigTomlText}
@@ -4523,7 +4682,7 @@ supports_websockets = true`}
                             }
                           )
                             .then(() => {
-                              toast.success("Codex 配置已保存")
+                              toast.success(t("toasts.codexSaved"))
                             })
                             .catch((err) => {
                               console.error(
@@ -4532,7 +4691,7 @@ supports_websockets = true`}
                               )
                               const message =
                                 err instanceof Error ? err.message : String(err)
-                              toast.error("保存 Codex 原生配置失败", {
+                              toast.error(t("toasts.saveCodexNativeFailed"), {
                                 description: message,
                               })
                             })
@@ -4542,12 +4701,12 @@ supports_websockets = true`}
                         {selectedIsSaving ? (
                           <>
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            保存中...
+                            {t("actions.saving")}
                           </>
                         ) : (
                           <>
                             <Save className="h-3.5 w-3.5" />
-                            保存 Codex 配置
+                            {t("actions.saveCodexConfig")}
                           </>
                         )}
                       </Button>
@@ -4557,17 +4716,16 @@ supports_websockets = true`}
                   <div className="space-y-3 rounded-md border bg-muted/10 p-3">
                     <div>
                       <label className="text-xs font-medium">
-                        Gemini 认证配置
+                        {t("gemini.authConfig")}
                       </label>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        对齐 Gemini CLI 认证文档，支持自定义、Google 登录、
-                        Gemini API Key、Vertex AI（ADC / 服务账号 / API Key）。
+                        {t("gemini.authConfigDescription")}
                       </p>
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="text-[11px] text-muted-foreground">
-                        认证方式
+                        {t("gemini.authMode")}
                       </label>
                       <Select
                         value={selectedDraft.geminiAuthMode}
@@ -4580,7 +4738,9 @@ supports_websockets = true`}
                         }}
                       >
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="选择认证方式" />
+                          <SelectValue
+                            placeholder={t("gemini.selectAuthMode")}
+                          />
                         </SelectTrigger>
                         <SelectContent align="start">
                           {GEMINI_AUTH_MODES.map((mode) => (
@@ -4607,7 +4767,7 @@ supports_websockets = true`}
                         placeholder="gemini-3-pro-preview"
                       />
                       <p className="text-[11px] text-muted-foreground">
-                        留空则使用系统默认模型。
+                        {t("modelHintDefault")}
                       </p>
                     </div>
 
@@ -4681,8 +4841,8 @@ supports_websockets = true`}
                             }}
                             title={
                               showApiKeys[selectedAgent.agent_type]
-                                ? "隐藏 Key"
-                                : "显示 Key"
+                                ? t("actions.hideKey")
+                                : t("actions.showKey")
                             }
                           >
                             {showApiKeys[selectedAgent.agent_type] ? (
@@ -4768,7 +4928,7 @@ supports_websockets = true`}
                           })
                         }}
                       >
-                        查看认证文档
+                        {t("gemini.viewAuthDoc")}
                       </Button>
                       <Button
                         size="sm"
@@ -4780,7 +4940,7 @@ supports_websockets = true`}
                             selectedDraft.configText
                           )
                             .then(() => {
-                              toast.success("Gemini 配置已保存")
+                              toast.success(t("toasts.geminiSaved"))
                             })
                             .catch((err) => {
                               console.error(
@@ -4789,7 +4949,7 @@ supports_websockets = true`}
                               )
                               const message =
                                 err instanceof Error ? err.message : String(err)
-                              toast.error("保存 Gemini 配置失败", {
+                              toast.error(t("toasts.saveGeminiFailed"), {
                                 description: message,
                               })
                             })
@@ -4799,12 +4959,12 @@ supports_websockets = true`}
                         {selectedIsSaving ? (
                           <>
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            保存中...
+                            {t("actions.saving")}
                           </>
                         ) : (
                           <>
                             <Save className="h-3.5 w-3.5" />
-                            保存 Gemini 配置
+                            {t("actions.saveGeminiConfig")}
                           </>
                         )}
                       </Button>
@@ -4814,11 +4974,10 @@ supports_websockets = true`}
                   <div className="space-y-3 rounded-md border bg-muted/10 p-3">
                     <div>
                       <label className="text-xs font-medium">
-                        OpenCode 配置管理
+                        {t("openCode.configManagement")}
                       </label>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        对齐 OpenCode `provider` 配置结构，支持多供应商管理，
-                        并与原生 JSON 文件双向联动。
+                        {t("openCode.configDescription")}
                       </p>
                     </div>
 
@@ -4858,11 +5017,13 @@ supports_websockets = true`}
                     <div className="space-y-2 rounded-md border bg-background/60 p-3">
                       <div className="flex items-center justify-between gap-2">
                         <label className="text-[11px] font-medium">
-                          Provider 管理
+                          {t("openCode.providerManagement")}
                         </label>
                         <div className="text-[11px] text-muted-foreground">
-                          共 {selectedOpenCodeConfig?.providerIds.length ?? 0}{" "}
-                          个
+                          {t("openCode.providerCount", {
+                            count:
+                              selectedOpenCodeConfig?.providerIds.length ?? 0,
+                          })}
                         </div>
                       </div>
 
@@ -4881,14 +5042,14 @@ supports_websockets = true`}
                           variant="outline"
                           onClick={handleOpenCodeAddProvider}
                         >
-                          新增 Provider
+                          {t("openCode.addProvider")}
                         </Button>
                       </div>
 
                       {(selectedOpenCodeConfig?.providerIds.length ?? 0) ===
                       0 ? (
                         <div className="text-[11px] text-muted-foreground">
-                          暂无 Provider，输入 ID 后点击“新增 Provider”创建。
+                          {t("openCode.emptyProvider")}
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -4940,7 +5101,9 @@ supports_websockets = true`}
                                       </button>
                                       <div className="flex items-center gap-3">
                                         <span className="text-[11px] text-muted-foreground">
-                                          {isDisabled ? "禁用" : "启用"}
+                                          {isDisabled
+                                            ? t("status.disabled")
+                                            : t("status.enabled")}
                                         </span>
                                         <Switch
                                           checked={!isDisabled}
@@ -4950,11 +5113,18 @@ supports_websockets = true`}
                                               checked
                                             )
                                           }}
-                                          aria-label={`${providerId} 启用状态`}
+                                          aria-label={t(
+                                            "openCode.providerEnabledState",
+                                            { providerId }
+                                          )}
                                           title={
                                             isDisabled
-                                              ? `点击启用 ${providerId}`
-                                              : `点击禁用 ${providerId}`
+                                              ? t("actions.clickEnable", {
+                                                  name: providerId,
+                                                })
+                                              : t("actions.clickDisable", {
+                                                  name: providerId,
+                                                })
                                           }
                                         />
                                         <Button
@@ -4967,7 +5137,7 @@ supports_websockets = true`}
                                             )
                                           }}
                                         >
-                                          删除
+                                          {t("actions.delete")}
                                         </Button>
                                       </div>
                                     </div>
@@ -5011,11 +5181,15 @@ supports_websockets = true`}
                                             }}
                                           >
                                             <SelectTrigger className="w-full">
-                                              <SelectValue placeholder="选择 provider.npm" />
+                                              <SelectValue
+                                                placeholder={t(
+                                                  "openCode.selectProviderNpm"
+                                                )}
+                                              />
                                             </SelectTrigger>
                                             <SelectContent align="start">
                                               <SelectItem value="__none__">
-                                                未设置
+                                                {t("openCode.notSet")}
                                               </SelectItem>
                                               {buildOpenCodeNpmOptions(
                                                 provider.npm
@@ -5102,8 +5276,8 @@ supports_websockets = true`}
                                                 showApiKeys[
                                                   selectedAgent.agent_type
                                                 ]
-                                                  ? "隐藏 Key"
-                                                  : "显示 Key"
+                                                  ? t("actions.hideKey")
+                                                  : t("actions.showKey")
                                               }
                                             >
                                               {showApiKeys[
@@ -5156,21 +5330,18 @@ supports_websockets = true`}
                                                 )}
                                               />
                                               <span className="text-[11px] font-medium">
-                                                模型管理
+                                                {t("openCode.modelManagement")}
                                               </span>
                                             </div>
                                             <span className="text-[11px] text-muted-foreground">
-                                              共 {provider.modelCount} 个
+                                              {t("openCode.modelCount", {
+                                                count: provider.modelCount,
+                                              })}
                                             </span>
                                           </button>
                                           <CollapsibleContent className="pt-2">
                                             <p className="text-[11px] text-muted-foreground">
-                                              对齐 OpenCode `provider.models`
-                                              结构。当前支持 `name` / `id`
-                                              快速管理；其它高级字段（如
-                                              `limit`、`modalities`、`variants`）
-                                              会保留，可在下方原生 JSON
-                                              中继续编辑。
+                                              {t("openCode.modelDescription")}
                                             </p>
 
                                             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -5199,23 +5370,22 @@ supports_websockets = true`}
                                                   )
                                                 }}
                                               >
-                                                添加模型
+                                                {t("openCode.addModel")}
                                               </Button>
                                             </div>
 
                                             {provider.modelIds.length === 0 ? (
                                               <div className="mt-2 text-[11px] text-muted-foreground">
-                                                暂无模型，输入 model id
-                                                后点击“添加模型”创建。
+                                                {t("openCode.emptyModel")}
                                               </div>
                                             ) : (
                                               <div className="mt-2 space-y-1">
                                                 <div className="flex items-center gap-2 px-1 text-[10px] text-muted-foreground">
                                                   <div className="min-w-0 flex-1">
-                                                    模型 ID
+                                                    {t("openCode.modelId")}
                                                   </div>
                                                   <div className="min-w-0 flex-1">
-                                                    模型名称
+                                                    {t("openCode.modelName")}
                                                   </div>
                                                   <div className="size-8 shrink-0" />
                                                 </div>
@@ -5310,8 +5480,14 @@ supports_websockets = true`}
                                                           size="icon-sm"
                                                           variant="ghost"
                                                           className="shrink-0 text-muted-foreground hover:text-destructive"
-                                                          aria-label={`删除模型 ${modelId}`}
-                                                          title={`删除模型 ${modelId}`}
+                                                          aria-label={t(
+                                                            "openCode.deleteModel",
+                                                            { modelId }
+                                                          )}
+                                                          title={t(
+                                                            "openCode.deleteModel",
+                                                            { modelId }
+                                                          )}
                                                           onClick={() => {
                                                             handleOpenCodeRemoveModel(
                                                               providerId,
@@ -5347,10 +5523,13 @@ supports_websockets = true`}
                                             )
                                               .then(() => {
                                                 toast.success(
-                                                  `Provider ${providerId} 保存成功`,
+                                                  t("toasts.providerSaved", {
+                                                    providerId,
+                                                  }),
                                                   {
-                                                    description:
-                                                      "OpenCode 配置与认证 JSON 已同步保存。",
+                                                    description: t(
+                                                      "toasts.openCodeConfigSynced"
+                                                    ),
                                                   }
                                                 )
                                               })
@@ -5364,7 +5543,12 @@ supports_websockets = true`}
                                                     ? err.message
                                                     : String(err)
                                                 toast.error(
-                                                  `保存 Provider ${providerId} 失败`,
+                                                  t(
+                                                    "toasts.saveProviderFailed",
+                                                    {
+                                                      providerId,
+                                                    }
+                                                  ),
                                                   {
                                                     description: message,
                                                   }
@@ -5376,12 +5560,12 @@ supports_websockets = true`}
                                           {selectedIsSaving ? (
                                             <>
                                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                              保存中...
+                                              {t("actions.saving")}
                                             </>
                                           ) : (
                                             <>
                                               <Save className="h-3.5 w-3.5" />
-                                              保存当前 Provider
+                                              {t("actions.saveCurrentProvider")}
                                             </>
                                           )}
                                         </Button>
@@ -5398,7 +5582,7 @@ supports_websockets = true`}
 
                     <div className="space-y-1.5">
                       <label className="text-[11px] text-muted-foreground">
-                        OpenCode 原生 JSON 配置
+                        {t("openCode.nativeJsonConfig")}
                       </label>
                       <Textarea
                         value={selectedDraft.configText}
@@ -5440,7 +5624,7 @@ supports_websockets = true`}
                             }
                           )
                             .then(() => {
-                              toast.success("OpenCode 配置已保存")
+                              toast.success(t("toasts.openCodeSaved"))
                             })
                             .catch((err) => {
                               console.error(
@@ -5449,7 +5633,7 @@ supports_websockets = true`}
                               )
                               const message =
                                 err instanceof Error ? err.message : String(err)
-                              toast.error("保存 OpenCode 配置失败", {
+                              toast.error(t("toasts.saveOpenCodeFailed"), {
                                 description: message,
                               })
                             })
@@ -5459,12 +5643,12 @@ supports_websockets = true`}
                         {selectedIsSaving ? (
                           <>
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            保存中...
+                            {t("actions.saving")}
                           </>
                         ) : (
                           <>
                             <Save className="h-3.5 w-3.5" />
-                            保存 OpenCode 配置
+                            {t("actions.saveOpenCodeConfig")}
                           </>
                         )}
                       </Button>
@@ -5474,10 +5658,10 @@ supports_websockets = true`}
                   <div className="space-y-3 rounded-md border bg-muted/10 p-3">
                     <div>
                       <label className="text-xs font-medium">
-                        Gateway 配置
+                        {t("openClaw.gatewayConfig")}
                       </label>
                       <p className="mt-1 text-[11px] text-muted-foreground">
-                        配置 OpenClaw Gateway 连接信息。支持本地或远程 Gateway。
+                        {t("openClaw.gatewayDescription")}
                       </p>
                     </div>
 
@@ -5496,7 +5680,7 @@ supports_websockets = true`}
                         placeholder="wss://gateway-host:18789"
                       />
                       <p className="text-[11px] text-muted-foreground">
-                        留空则使用 openclaw 本地配置的 gateway.remote.url。
+                        {t("openClaw.gatewayUrlHint")}
                       </p>
                     </div>
 
@@ -5518,7 +5702,7 @@ supports_websockets = true`}
                               event.target.value
                             )
                           }}
-                          placeholder="Gateway 认证 Token"
+                          placeholder={t("openClaw.gatewayTokenPlaceholder")}
                         />
                         <Button
                           type="button"
@@ -5533,8 +5717,8 @@ supports_websockets = true`}
                           }}
                           title={
                             showApiKeys[selectedAgent.agent_type]
-                              ? "隐藏 Token"
-                              : "显示 Token"
+                              ? t("actions.hideToken")
+                              : t("actions.showToken")
                           }
                         >
                           {showApiKeys[selectedAgent.agent_type] ? (
@@ -5545,8 +5729,7 @@ supports_websockets = true`}
                         </Button>
                       </div>
                       <p className="text-[11px] text-muted-foreground">
-                        建议使用 token-file 替代明文 Token，可通过 openclaw
-                        命令行配置。
+                        {t("openClaw.gatewayTokenHint")}
                       </p>
                     </div>
 
@@ -5565,7 +5748,7 @@ supports_websockets = true`}
                         placeholder="agent:main:main"
                       />
                       <p className="text-[11px] text-muted-foreground">
-                        可选。指定 Gateway Session Key，留空则自动分配隔离会话。
+                        {t("openClaw.sessionKeyHint")}
                       </p>
                     </div>
 
@@ -5580,7 +5763,7 @@ supports_websockets = true`}
                             selectedDraft.configText
                           )
                             .then(() => {
-                              toast.success("OpenClaw 配置已保存")
+                              toast.success(t("toasts.openClawSaved"))
                             })
                             .catch((err) => {
                               console.error(
@@ -5589,7 +5772,7 @@ supports_websockets = true`}
                               )
                               const message =
                                 err instanceof Error ? err.message : String(err)
-                              toast.error("保存 OpenClaw 配置失败", {
+                              toast.error(t("toasts.saveOpenClawFailed"), {
                                 description: message,
                               })
                             })
@@ -5599,12 +5782,12 @@ supports_websockets = true`}
                         {selectedIsSaving ? (
                           <>
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            保存中...
+                            {t("actions.saving")}
                           </>
                         ) : (
                           <>
                             <Save className="h-3.5 w-3.5" />
-                            保存 OpenClaw 配置
+                            {t("actions.saveOpenClawConfig")}
                           </>
                         )}
                       </Button>
@@ -5613,11 +5796,13 @@ supports_websockets = true`}
                 ) : (
                   <div className="space-y-3 rounded-md border bg-muted/10 p-3">
                     <div>
-                      <label className="text-xs font-medium">配置管理</label>
+                      <label className="text-xs font-medium">
+                        {t("configManagement")}
+                      </label>
                       <p className="mt-1 text-[11px] text-muted-foreground">
                         {selectedAgent.agent_type === "claude_code"
-                          ? "支持 API URL、API Key 与 Claude 模型快捷配置，并与原生 JSON 配置联动。"
-                          : "支持重要配置输入（API URL、API Key、Model）和原生 JSON 配置管理。"}
+                          ? t("generalConfigDescriptionClaude")
+                          : t("generalConfigDescriptionDefault")}
                       </p>
                     </div>
 
@@ -5670,8 +5855,8 @@ supports_websockets = true`}
                           }}
                           title={
                             showApiKeys[selectedAgent.agent_type]
-                              ? "隐藏 API Key"
-                              : "显示 API Key"
+                              ? t("actions.hideApiKey")
+                              : t("actions.showApiKey")
                           }
                         >
                           {showApiKeys[selectedAgent.agent_type] ? (
@@ -5688,7 +5873,7 @@ supports_websockets = true`}
                         <div className="grid gap-3 md:grid-cols-2">
                           <div className="space-y-1.5">
                             <label className="text-[11px] text-muted-foreground">
-                              主模型
+                              {t("claude.mainModel")}
                             </label>
                             <Input
                               value={selectedDraft.claudeMainModel}
@@ -5703,7 +5888,7 @@ supports_websockets = true`}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[11px] text-muted-foreground">
-                              推理模型（thinking）
+                              {t("claude.reasoningModel")}
                             </label>
                             <Input
                               value={selectedDraft.claudeReasoningModel}
@@ -5718,7 +5903,7 @@ supports_websockets = true`}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[11px] text-muted-foreground">
-                              Haiku 默认模型
+                              {t("claude.haikuDefaultModel")}
                             </label>
                             <Input
                               value={selectedDraft.claudeDefaultHaikuModel}
@@ -5733,7 +5918,7 @@ supports_websockets = true`}
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-[11px] text-muted-foreground">
-                              Sonnet 默认模型
+                              {t("claude.sonnetDefaultModel")}
                             </label>
                             <Input
                               value={selectedDraft.claudeDefaultSonnetModel}
@@ -5748,7 +5933,7 @@ supports_websockets = true`}
                           </div>
                           <div className="space-y-1.5 md:col-span-2">
                             <label className="text-[11px] text-muted-foreground">
-                              Opus 默认模型
+                              {t("claude.opusDefaultModel")}
                             </label>
                             <Input
                               value={selectedDraft.claudeDefaultOpusModel}
@@ -5763,7 +5948,7 @@ supports_websockets = true`}
                           </div>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
-                          留空则使用系统默认模型。
+                          {t("modelHintDefault")}
                         </p>
                       </div>
                     ) : (
@@ -5786,7 +5971,7 @@ supports_websockets = true`}
 
                     <div className="space-y-1.5">
                       <label className="text-[11px] text-muted-foreground">
-                        原生 JSON 配置
+                        {t("nativeJsonConfig")}
                       </label>
                       <Textarea
                         value={selectedDraft.configText}
@@ -5821,7 +6006,7 @@ supports_websockets = true`}
                             selectedDraft.configText
                           )
                             .then(() => {
-                              toast.success("配置已保存")
+                              toast.success(t("toasts.configSaved"))
                             })
                             .catch((err) => {
                               console.error(
@@ -5830,9 +6015,12 @@ supports_websockets = true`}
                               )
                               const message =
                                 err instanceof Error ? err.message : String(err)
-                              toast.error("保存配置管理失败", {
-                                description: message,
-                              })
+                              toast.error(
+                                t("toasts.saveConfigManagementFailed"),
+                                {
+                                  description: message,
+                                }
+                              )
                             })
                         }}
                         disabled={selectedIsSaving}
@@ -5840,12 +6028,12 @@ supports_websockets = true`}
                         {selectedIsSaving ? (
                           <>
                             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            保存中...
+                            {t("actions.saving")}
                           </>
                         ) : (
                           <>
                             <Save className="h-3.5 w-3.5" />
-                            保存配置管理
+                            {t("actions.saveConfigManagement")}
                           </>
                         )}
                       </Button>
@@ -5856,7 +6044,7 @@ supports_websockets = true`}
             </div>
           ) : (
             <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
-              暂无可用 Agent。
+              {t("emptyNoAgent")}
             </div>
           )}
         </div>
@@ -5871,15 +6059,17 @@ supports_websockets = true`}
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              确认删除 Provider {openCodeDeleteProviderId ?? ""}？
+              {t("dialogs.confirmDeleteProvider", {
+                providerId: openCodeDeleteProviderId ?? "",
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              将同步更新 OpenCode 配置与认证 JSON 文件，删除后不可恢复。
+              {t("dialogs.confirmDeleteProviderDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={selectedIsSaving}>
-              取消
+              {t("actions.cancel")}
             </AlertDialogCancel>
             <Button
               variant="destructive"
@@ -5889,12 +6079,12 @@ supports_websockets = true`}
               {selectedIsSaving ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  删除中...
+                  {t("actions.deleting")}
                 </>
               ) : (
                 <>
                   <Trash2 className="h-3.5 w-3.5" />
-                  确认删除
+                  {t("actions.confirmDelete")}
                 </>
               )}
             </Button>
@@ -5911,10 +6101,12 @@ supports_websockets = true`}
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              确认卸载 {uninstallConfirmAgent?.name ?? "Agent"}？
+              {t("dialogs.confirmUninstall", {
+                name: uninstallConfirmAgent?.name ?? "Agent",
+              })}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              这会移除本地安装版本，之后可随时重新安装。
+              {t("dialogs.confirmUninstallDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -5925,7 +6117,7 @@ supports_websockets = true`}
                   : false
               }
             >
-              取消
+              {t("actions.cancel")}
             </AlertDialogCancel>
             <Button
               variant="destructive"
@@ -5940,12 +6132,12 @@ supports_websockets = true`}
               busyBinaryAction[uninstallConfirmAgent.agent_type] ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  卸载中...
+                  {t("actions.uninstalling")}
                 </>
               ) : (
                 <>
                   <Trash2 className="h-3.5 w-3.5" />
-                  确认卸载
+                  {t("actions.confirmUninstall")}
                 </>
               )}
             </Button>

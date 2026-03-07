@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Save,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import { toast } from "sonner"
@@ -63,71 +64,28 @@ import type {
   AgentType,
 } from "@/lib/types"
 
-function defaultSkillContent(agentType: AgentType): string {
+type SkillsTranslator = (
+  key: string,
+  values?: Record<string, string | number>
+) => string
+
+function defaultSkillContent(
+  agentType: AgentType,
+  t: SkillsTranslator
+): string {
   if (agentType === "gemini") {
-    return `---
-name: example-skill
-description: Describe when this skill should be used.
----
-
-# Skill Name
-
-Instructions for the agent when this skill is active.
-
-## Workflow
-
-1. Add actionable step one.
-2. Add actionable step two.
-`
+    return t("templates.gemini")
   }
 
   if (agentType === "open_code") {
-    return `---
-name: example-skill
-description: Describe when this skill should be used.
----
-
-# Purpose
-
-Describe what this skill helps with.
-
-# Steps
-
-1. Add actionable step one.
-2. Add actionable step two.
-`
+    return t("templates.openCode")
   }
 
   if (agentType === "open_claw") {
-    return `---
-name: example-skill
-description: Describe when this skill should be used.
-user-invocable: true
-disable-model-invocation: false
----
-
-# Purpose
-
-Describe what this skill helps with.
-
-# Instructions
-
-1. Add actionable instruction one.
-2. Add actionable instruction two.
-`
+    return t("templates.openClaw")
   }
 
-  return `# Skill: example-skill
-
-## When to use
-
-- Describe trigger conditions.
-
-## Instructions
-
-1. Add actionable instruction one.
-2. Add actionable instruction two.
-`
+  return t("templates.default")
 }
 
 function defaultSkillLayoutForAgent(
@@ -245,6 +203,8 @@ function parseYamlFrontMatter(content: string): ParsedFrontMatter {
 }
 
 export function SkillsSettings() {
+  const t = useTranslations("SkillsSettings")
+  const skillsT = t as unknown as SkillsTranslator
   const panelContainerRef = useRef<HTMLDivElement | null>(null)
   const [panelContainerWidth, setPanelContainerWidth] = useState(0)
   const [agents, setAgents] = useState<AcpAgentInfo[]>([])
@@ -349,10 +309,10 @@ export function SkillsSettings() {
     (agentType: AgentType, contentEditing = false) => {
       setSelectedSkillId(null)
       setSkillDraftId("")
-      setSkillDraftContent(defaultSkillContent(agentType))
+      setSkillDraftContent(defaultSkillContent(agentType, skillsT))
       setIsContentEditing(contentEditing)
     },
-    []
+    [skillsT]
   )
 
   const openSkill = useCallback(
@@ -374,12 +334,12 @@ export function SkillsSettings() {
         setIsContentEditing(mode === "edit")
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        toast.error("加载 Skill 失败", { description: message })
+        toast.error(t("toasts.loadFailed"), { description: message })
       } finally {
         setSkillReading(false)
       }
     },
-    []
+    [t]
   )
 
   const loadSkills = useCallback(async (agentType: AgentType) => {
@@ -466,10 +426,10 @@ export function SkillsSettings() {
         await openFolderWindow(dirPath)
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        toast.error("打开目录失败", { description: message })
+        toast.error(t("toasts.openFolderFailed"), { description: message })
       }
     },
-    []
+    [t]
   )
 
   const handleRequestDeleteSkill = useCallback((skill: AgentSkillItem) => {
@@ -502,13 +462,13 @@ export function SkillsSettings() {
   const handleSaveSkill = useCallback(async () => {
     if (!selectedAgent) return
     if (!skillLocation) {
-      toast.error("当前 Agent 未找到可用的 Skills 目录")
+      toast.error(t("toasts.noSkillDirectory"))
       return
     }
 
     const trimmedId = skillDraftId.trim()
     if (!trimmedId) {
-      toast.error("Skill 名称不能为空")
+      toast.error(t("toasts.nameRequired"))
       return
     }
 
@@ -528,10 +488,12 @@ export function SkillsSettings() {
         saved,
         isContentEditing ? "edit" : "preview"
       )
-      toast.success(isEditingExisting ? "Skill 已更新" : "Skill 已创建")
+      toast.success(
+        isEditingExisting ? t("toasts.updated") : t("toasts.created")
+      )
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      toast.error("保存 Skill 失败", { description: message })
+      toast.error(t("toasts.saveFailed"), { description: message })
     } finally {
       setSkillSaving(false)
     }
@@ -545,6 +507,7 @@ export function SkillsSettings() {
     skillDraftId,
     skillLocation,
     isContentEditing,
+    t,
   ])
 
   const handleDeleteSkill = useCallback(
@@ -562,7 +525,7 @@ export function SkillsSettings() {
         })
 
         const latest = await loadSkills(selectedAgent.agent_type)
-        toast.success("Skill 已删除")
+        toast.success(t("toasts.deleted"))
 
         if (!deletingCurrent) return
 
@@ -574,14 +537,14 @@ export function SkillsSettings() {
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        toast.error("删除 Skill 失败", { description: message })
+        toast.error(t("toasts.deleteFailed"), { description: message })
       } finally {
         setSkillDeletingId(null)
         setDeleteDialogOpen(false)
         setDeleteTargetSkill(null)
       }
     },
-    [loadSkills, openSkill, resetDraft, selectedAgent, selectedSkillId]
+    [loadSkills, openSkill, resetDraft, selectedAgent, selectedSkillId, t]
   )
 
   const handleConfirmDelete = useCallback(async () => {
@@ -692,7 +655,7 @@ export function SkillsSettings() {
     return (
       <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        正在加载支持 Skills 的 Agent...
+        {t("loadingAgents")}
       </div>
     )
   }
@@ -701,9 +664,9 @@ export function SkillsSettings() {
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between gap-3 pb-4">
         <div>
-          <h2 className="text-base font-semibold">Skills</h2>
+          <h2 className="text-base font-semibold">{t("title")}</h2>
           <p className="text-xs text-muted-foreground mt-1">
-            左侧选择 Skill，右侧默认预览 Markdown，点击编辑后可修改并保存。
+            {t("description")}
           </p>
         </div>
       </div>
@@ -716,7 +679,7 @@ export function SkillsSettings() {
 
       {sortedAgents.length === 0 ? (
         <div className="h-full rounded-lg border bg-card flex items-center justify-center text-sm text-muted-foreground">
-          当前没有可管理 Skills 的 Agent。
+          {t("emptyNoManageableAgents")}
         </div>
       ) : (
         <div ref={panelContainerRef} className="flex-1 min-h-0 min-w-0">
@@ -732,7 +695,7 @@ export function SkillsSettings() {
               <div className="min-h-0 h-full min-w-0 rounded-lg border bg-card flex flex-col overflow-hidden lg:rounded-r-none">
                 <div className="border-b p-3 space-y-2.5">
                   <div className="text-xs font-medium text-muted-foreground">
-                    管理对象
+                    {t("managedTarget")}
                   </div>
                   <Select
                     value={selectedAgentType ?? ""}
@@ -741,7 +704,7 @@ export function SkillsSettings() {
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="请选择 Agent" />
+                      <SelectValue placeholder={t("selectAgentPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent align="start">
                       {sortedAgents.map((agent) => (
@@ -760,12 +723,12 @@ export function SkillsSettings() {
                     onChange={(event) => {
                       setSearchQuery(event.target.value)
                     }}
-                    placeholder="搜索名称 / ID / 路径..."
+                    placeholder={t("searchPlaceholder")}
                   />
                 </div>
 
                 <div className="border-b px-3 py-2 text-xs font-medium text-muted-foreground flex items-center justify-between gap-2">
-                  <span>Skills 列表</span>
+                  <span>{t("skillsList")}</span>
                   <span>{filteredSkills.length}</span>
                 </div>
 
@@ -773,7 +736,7 @@ export function SkillsSettings() {
                   {skillsLoading && (
                     <div className="text-xs text-muted-foreground flex items-center gap-1.5 p-1">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      加载 Skills 中...
+                      {t("loadingSkills")}
                     </div>
                   )}
 
@@ -785,7 +748,7 @@ export function SkillsSettings() {
 
                   {!skillsLoading && !skillsError && !skillsSupported && (
                     <div className="text-xs text-muted-foreground rounded-md border bg-muted/20 px-2.5 py-2">
-                      当前 Agent 暂不支持 Skills 管理。
+                      {t("agentNotSupported")}
                     </div>
                   )}
 
@@ -793,7 +756,7 @@ export function SkillsSettings() {
                     skillsSupported &&
                     filteredSkills.length === 0 && (
                       <div className="text-xs text-muted-foreground px-1">
-                        暂无 Skill，可点击“新建 Skill”。
+                        {t("emptySkills")}
                       </div>
                     )}
 
@@ -850,7 +813,7 @@ export function SkillsSettings() {
                                 })
                               }}
                             >
-                              预览
+                              {t("actions.preview")}
                             </ContextMenuItem>
                             <ContextMenuItem
                               onSelect={() => {
@@ -862,7 +825,7 @@ export function SkillsSettings() {
                                 })
                               }}
                             >
-                              编辑
+                              {t("actions.edit")}
                             </ContextMenuItem>
                             <ContextMenuItem
                               onSelect={() => {
@@ -874,7 +837,7 @@ export function SkillsSettings() {
                                 })
                               }}
                             >
-                              在新窗口打开
+                              {t("actions.openInWindow")}
                             </ContextMenuItem>
                             <ContextMenuItem
                               disabled={skillSaving || skillReading || deleting}
@@ -883,7 +846,9 @@ export function SkillsSettings() {
                               }}
                               className="text-destructive focus:text-destructive"
                             >
-                              {deleting ? "删除中..." : "删除"}
+                              {deleting
+                                ? t("actions.deleting")
+                                : t("actions.delete")}
                             </ContextMenuItem>
                           </ContextMenuContent>
                         </ContextMenu>
@@ -912,7 +877,7 @@ export function SkillsSettings() {
                     ) : (
                       <RefreshCw className="h-3.5 w-3.5" />
                     )}
-                    刷新
+                    {t("actions.refresh")}
                   </Button>
                   <Button
                     size="sm"
@@ -921,7 +886,7 @@ export function SkillsSettings() {
                     disabled={!selectedAgent}
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    新建 Skill
+                    {t("actions.newSkill")}
                   </Button>
                 </div>
               </div>
@@ -936,7 +901,7 @@ export function SkillsSettings() {
                     <div className="border-b px-4 py-3 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <h3 className="text-sm font-semibold truncate">
-                          {skillDraftId.trim() || "新建 Skill"}
+                          {skillDraftId.trim() || t("newSkillTitle")}
                         </h3>
                       </div>
 
@@ -948,7 +913,7 @@ export function SkillsSettings() {
                           disabled={skillSaving || skillReading}
                         >
                           <RotateCcw className="h-3 w-3" />
-                          重置
+                          {t("actions.reset")}
                         </Button>
                         <Button
                           size="xs"
@@ -965,12 +930,12 @@ export function SkillsSettings() {
                           {skillSaving ? (
                             <>
                               <Loader2 className="h-3 w-3 animate-spin" />
-                              保存中...
+                              {t("actions.saving")}
                             </>
                           ) : (
                             <>
                               <Save className="h-3 w-3" />
-                              保存
+                              {t("actions.save")}
                             </>
                           )}
                         </Button>
@@ -981,7 +946,7 @@ export function SkillsSettings() {
                       <div className="rounded-md border p-3 space-y-2.5">
                         <div className="text-[11px] text-muted-foreground flex items-center gap-1">
                           <BookOpenText className="h-3.5 w-3.5" />
-                          Skill 信息
+                          {t("skillInfo")}
                         </div>
 
                         <Input
@@ -989,26 +954,30 @@ export function SkillsSettings() {
                           onChange={(event) => {
                             setSkillDraftId(event.target.value)
                           }}
-                          placeholder="skill-id (letters/numbers/-/_/.)"
+                          placeholder={t("skillIdPlaceholder")}
                         />
 
                         {draftPathPreview ? (
                           <div className="text-[11px] text-muted-foreground break-all">
-                            Skills目录：{draftPathPreview}
+                            {t("skillsDirectoryWithPath", {
+                              path: draftPathPreview,
+                            })}
                           </div>
                         ) : (
                           <div className="text-[11px] text-muted-foreground break-all">
-                            Skills目录：请输入 Skill ID 以生成完整路径
+                            {t("skillsDirectoryNeedId")}
                           </div>
                         )}
                       </div>
 
                       <div className="rounded-md border p-3 space-y-2">
                         <div className="text-[11px] text-muted-foreground flex items-center justify-between gap-2">
-                          <span>Markdown 内容</span>
+                          <span>{t("markdownContent")}</span>
                           <div className="flex items-center gap-1.5">
                             <span>
-                              {isContentEditing ? "编辑中" : "预览中"}
+                              {isContentEditing
+                                ? t("editingStatus")
+                                : t("previewStatus")}
                             </span>
                             <Button
                               size="xs"
@@ -1023,12 +992,12 @@ export function SkillsSettings() {
                               {isContentEditing ? (
                                 <>
                                   <Eye className="h-3 w-3" />
-                                  预览
+                                  {t("actions.preview")}
                                 </>
                               ) : (
                                 <>
                                   <Pencil className="h-3 w-3" />
-                                  编辑
+                                  {t("actions.edit")}
                                 </>
                               )}
                             </Button>
@@ -1041,7 +1010,7 @@ export function SkillsSettings() {
                             onChange={(event) => {
                               setSkillDraftContent(event.target.value)
                             }}
-                            placeholder="输入 Skill 文本内容..."
+                            placeholder={t("contentPlaceholder")}
                             className="min-h-80 font-mono text-xs"
                           />
                         ) : (
@@ -1049,7 +1018,7 @@ export function SkillsSettings() {
                             {parsedPreviewContent.frontMatterRaw && (
                               <div className="rounded-md border bg-muted/10 p-3">
                                 <div className="text-[11px] text-muted-foreground mb-2">
-                                  Skills 元信息
+                                  {t("metadataTitle")}
                                 </div>
                                 {parsedPreviewContent.fields.length > 0 ? (
                                   <div className="grid gap-1.5">
@@ -1097,11 +1066,11 @@ export function SkillsSettings() {
                                 </div>
                               ) : parsedPreviewContent.frontMatterRaw ? (
                                 <div className="text-xs text-muted-foreground py-3">
-                                  该 Skill 仅包含 YAML 元信息。
+                                  {t("onlyYamlMetadata")}
                                 </div>
                               ) : (
                                 <div className="text-xs text-muted-foreground py-3">
-                                  暂无内容。点击“编辑”开始输入。
+                                  {t("emptyContentHint")}
                                 </div>
                               )}
                             </div>
@@ -1110,7 +1079,7 @@ export function SkillsSettings() {
 
                         {skillReading && (
                           <div className="text-[11px] text-muted-foreground">
-                            正在加载 Skill...
+                            {t("loadingSkill")}
                           </div>
                         )}
                       </div>
@@ -1118,7 +1087,7 @@ export function SkillsSettings() {
                   </div>
                 ) : (
                   <div className="h-full flex items-center justify-center text-xs text-muted-foreground">
-                    暂无可用 Agent。
+                    {t("emptyNoAgents")}
                   </div>
                 )}
               </div>
@@ -1138,21 +1107,22 @@ export function SkillsSettings() {
       >
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>删除 Skill</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteDialog.title")}</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteTargetSkill ? (
                 <>
-                  确认删除 Skill <code>{deleteTargetSkill.name}</code>{" "}
-                  吗？该操作无法撤销。
+                  {t("deleteDialog.confirmWithNamePrefix")}{" "}
+                  <code>{deleteTargetSkill.name}</code>{" "}
+                  {t("deleteDialog.confirmWithNameSuffix")}
                 </>
               ) : (
-                "确认删除当前 Skill 吗？该操作无法撤销。"
+                t("deleteDialog.confirm")
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={Boolean(skillDeletingId)}>
-              取消
+              {t("actions.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
@@ -1163,7 +1133,7 @@ export function SkillsSettings() {
                 })
               }}
             >
-              {skillDeletingId ? "删除中..." : "删除"}
+              {skillDeletingId ? t("actions.deleting") : t("actions.delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

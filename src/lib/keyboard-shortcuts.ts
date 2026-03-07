@@ -13,65 +13,41 @@ export type ShortcutActionId =
 
 export interface ShortcutDefinition {
   id: ShortcutActionId
-  title: string
-  description: string
 }
 
 export const SHORTCUT_DEFINITIONS: ShortcutDefinition[] = [
   {
     id: "toggle_search",
-    title: "打开搜索",
-    description: "打开或关闭会话搜索面板",
   },
   {
     id: "toggle_sidebar",
-    title: "切换左侧边栏",
-    description: "显示或隐藏会话列表侧边栏",
   },
   {
     id: "toggle_terminal",
-    title: "切换终端",
-    description: "显示或隐藏底部终端面板",
   },
   {
     id: "new_terminal_tab",
-    title: "新建终端",
-    description: "当最近鼠标活动在终端时新建终端标签",
   },
   {
     id: "close_current_terminal_tab",
-    title: "关闭当前终端",
-    description: "当最近鼠标活动在终端时关闭当前终端标签",
   },
   {
     id: "toggle_aux_panel",
-    title: "切换右侧面板",
-    description: "显示或隐藏辅助信息面板",
   },
   {
     id: "new_conversation",
-    title: "新建会话",
-    description: "在当前文件夹中创建新的对话标签",
   },
   {
     id: "open_folder",
-    title: "Open Folder",
-    description: "打开文件夹选择器并在新窗口中打开",
   },
   {
     id: "open_settings",
-    title: "打开设置",
-    description: "打开设置窗口",
   },
   {
     id: "close_current_tab",
-    title: "关闭当前标签",
-    description: "关闭当前会话或文件标签",
   },
   {
     id: "close_all_file_tabs",
-    title: "关闭全部文件标签",
-    description: "仅在文件模式下关闭所有文件标签",
   },
 ]
 

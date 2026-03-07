@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Keyboard, RotateCcw } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 import { useIsMac } from "@/hooks/use-is-mac"
 import { useShortcutSettings } from "@/hooks/use-shortcut-settings"
@@ -27,10 +28,19 @@ function canShareShortcut(a: ShortcutActionId, b: ShortcutActionId): boolean {
 }
 
 export function ShortcutSettings() {
+  const t = useTranslations("ShortcutSettings")
   const { shortcuts, updateShortcut, resetShortcuts } = useShortcutSettings()
   const isMac = useIsMac()
   const [recordingAction, setRecordingAction] =
     useState<ShortcutActionId | null>(null)
+  const actionTitle = useCallback(
+    (id: ShortcutActionId) => t(`actions.${id}.title`),
+    [t]
+  )
+  const actionDescription = useCallback(
+    (id: ShortcutActionId) => t(`actions.${id}.description`),
+    [t]
+  )
 
   const isDefault = useMemo(
     () =>
@@ -65,14 +75,14 @@ export function ShortcutSettings() {
       )
 
       if (conflict) {
-        toast.error(`快捷键已被「${conflict.title}」占用`)
+        toast.error(t("toasts.conflict", { title: actionTitle(conflict.id) }))
         return
       }
 
       if (updateShortcut(recordingAction, shortcut)) {
-        toast.success("快捷键已更新")
+        toast.success(t("toasts.updated"))
       } else {
-        toast.error("快捷键无效，请重试")
+        toast.error(t("toasts.invalid"))
       }
 
       setRecordingAction(null)
@@ -83,7 +93,7 @@ export function ShortcutSettings() {
     return () => {
       window.removeEventListener("keydown", onKeyDown, true)
     }
-  }, [recordingAction, shortcuts, updateShortcut])
+  }, [actionTitle, recordingAction, shortcuts, t, updateShortcut])
 
   return (
     <div className="h-full overflow-auto">
@@ -92,7 +102,7 @@ export function ShortcutSettings() {
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Keyboard className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">快捷键</h2>
+              <h2 className="text-sm font-semibold">{t("sectionTitle")}</h2>
             </div>
             <Button
               variant="outline"
@@ -100,18 +110,17 @@ export function ShortcutSettings() {
               onClick={() => {
                 resetShortcuts()
                 setRecordingAction(null)
-                toast.success("已恢复默认快捷键")
+                toast.success(t("toasts.reset"))
               }}
               disabled={isDefault}
             >
               <RotateCcw className="h-3.5 w-3.5" />
-              恢复默认
+              {t("resetDefault")}
             </Button>
           </div>
 
           <p className="text-xs text-muted-foreground leading-5">
-            点击右侧按钮后按下组合键即可修改。建议使用 Ctrl/Cmd、Alt、Shift
-            的组合。按 Esc 可取消录制。
+            {t("recordInstruction")}
           </p>
 
           <div className="space-y-2">
@@ -125,10 +134,10 @@ export function ShortcutSettings() {
                 >
                   <div className="min-w-0">
                     <div className="text-sm font-medium">
-                      {definition.title}
+                      {actionTitle(definition.id)}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">
-                      {definition.description}
+                      {actionDescription(definition.id)}
                     </p>
                   </div>
                   <Button
@@ -142,7 +151,7 @@ export function ShortcutSettings() {
                     }}
                   >
                     {isRecording
-                      ? "按下快捷键..."
+                      ? t("recording")
                       : formatShortcutLabel(shortcuts[definition.id], isMac)}
                   </Button>
                 </div>
