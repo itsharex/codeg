@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { useTranslations } from "next-intl"
 import { cjk } from "@streamdown/cjk"
 import { code } from "@streamdown/code"
 import { math } from "@streamdown/math"
@@ -258,11 +259,12 @@ export const MessageBranchPrevious = ({
   children,
   ...props
 }: MessageBranchPreviousProps) => {
+  const t = useTranslations("Folder.chat.messageBranch")
   const { goToPrevious, totalBranches } = useMessageBranch()
 
   return (
     <Button
-      aria-label="Previous branch"
+      aria-label={t("previousBranchAria")}
       disabled={totalBranches <= 1}
       onClick={goToPrevious}
       size="icon-sm"
@@ -281,11 +283,12 @@ export const MessageBranchNext = ({
   children,
   ...props
 }: MessageBranchNextProps) => {
+  const t = useTranslations("Folder.chat.messageBranch")
   const { goToNext, totalBranches } = useMessageBranch()
 
   return (
     <Button
-      aria-label="Next branch"
+      aria-label={t("nextBranchAria")}
       disabled={totalBranches <= 1}
       onClick={goToNext}
       size="icon-sm"
@@ -304,6 +307,7 @@ export const MessageBranchPage = ({
   className,
   ...props
 }: MessageBranchPageProps) => {
+  const t = useTranslations("Folder.chat.messageBranch")
   const { currentBranch, totalBranches } = useMessageBranch()
 
   return (
@@ -314,7 +318,7 @@ export const MessageBranchPage = ({
       )}
       {...props}
     >
-      {currentBranch + 1} of {totalBranches}
+      {t("pageOf", { current: currentBranch + 1, total: totalBranches })}
     </ButtonGroupText>
   )
 }

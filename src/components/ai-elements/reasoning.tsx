@@ -3,6 +3,7 @@
 import type { ComponentProps, ReactNode } from "react"
 
 import { useControllableState } from "@radix-ui/react-use-controllable-state"
+import { useTranslations } from "next-intl"
 import {
   Collapsible,
   CollapsibleContent,
@@ -155,24 +156,29 @@ export type ReasoningTriggerProps = ComponentProps<
   getThinkingMessage?: (isStreaming: boolean, duration?: number) => ReactNode
 }
 
-const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number) => {
-  if (isStreaming || duration === 0) {
-    return <Shimmer duration={1}>Thinking...</Shimmer>
-  }
-  if (duration === undefined) {
-    return <p>Thought for a few seconds</p>
-  }
-  return <p>Thought for {duration} seconds</p>
-}
-
 export const ReasoningTrigger = memo(
   ({
     className,
     children,
-    getThinkingMessage = defaultGetThinkingMessage,
+    getThinkingMessage,
     ...props
   }: ReasoningTriggerProps) => {
+    const t = useTranslations("Folder.chat.reasoning")
     const { isStreaming, isOpen, duration } = useReasoning()
+    const defaultGetThinkingMessage = useCallback(
+      (nextIsStreaming: boolean, nextDuration?: number) => {
+        if (nextIsStreaming || nextDuration === 0) {
+          return <Shimmer duration={1}>{t("thinking")}</Shimmer>
+        }
+        if (nextDuration === undefined) {
+          return <p>{t("thoughtForFewSeconds")}</p>
+        }
+        return <p>{t("thoughtForSeconds", { duration: nextDuration })}</p>
+      },
+      [t]
+    )
+    const thinkingMessageBuilder =
+      getThinkingMessage ?? defaultGetThinkingMessage
 
     return (
       <CollapsibleTrigger
@@ -185,7 +191,7 @@ export const ReasoningTrigger = memo(
         {children ?? (
           <>
             <BrainIcon className="size-4" />
-            {getThinkingMessage(isStreaming, duration)}
+            {thinkingMessageBuilder(isStreaming, duration)}
             <ChevronDownIcon
               className={cn(
                 "size-4 transition-transform",

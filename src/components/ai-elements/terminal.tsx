@@ -3,6 +3,7 @@
 import type { ComponentProps, HTMLAttributes } from "react"
 import Ansi from "ansi-to-react"
 import { CheckIcon, CopyIcon, TerminalIcon, Trash2Icon } from "lucide-react"
+import { useTranslations } from "next-intl"
 import {
   createContext,
   useCallback,
@@ -127,6 +128,7 @@ export function TerminalTitle({
   children,
   ...props
 }: TerminalTitleProps) {
+  const t = useTranslations("Folder.chat.terminal")
   return (
     <div
       className={cn(
@@ -136,7 +138,7 @@ export function TerminalTitle({
       {...props}
     >
       <TerminalIcon className="size-4" />
-      {children ?? "Terminal"}
+      {children ?? t("title")}
     </div>
   )
 }
@@ -148,6 +150,7 @@ export function TerminalStatus({
   children,
   ...props
 }: TerminalStatusProps) {
+  const t = useTranslations("Folder.chat.terminal")
   const { isStreaming } = useContext(TerminalContext)
 
   if (!isStreaming) {
@@ -162,7 +165,7 @@ export function TerminalStatus({
       )}
       {...props}
     >
-      {children ?? <Shimmer>Running</Shimmer>}
+      {children ?? <Shimmer>{t("running")}</Shimmer>}
     </div>
   )
 }

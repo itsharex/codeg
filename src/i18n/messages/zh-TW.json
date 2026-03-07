@@ -513,6 +513,11 @@
   "SettingsPages": {
     "agentsLoading": "載入 Agent 設定中..."
   },
+  "CommitPage": {
+    "title": "提交程式碼",
+    "invalidFolderId": "無效的 folderId",
+    "loadingRepo": "正在載入倉庫..."
+  },
   "Folder": {
     "common": {
       "all": "全部",
@@ -1023,6 +1028,33 @@
         "saving": "儲存中..."
       }
     },
+    "workspaceContext": {
+      "confirmCloseDirtyTab": "檔案「{title}」有未儲存變更，確定關閉嗎？",
+      "confirmCloseOtherDirtyTabs": "其他分頁有未儲存變更，確定關閉嗎？",
+      "confirmCloseAllDirtyTabs": "存在未儲存變更，確定關閉全部分頁嗎？",
+      "unableLoadContent": "無法載入內容。\n\n{message}",
+      "previewRequestTimedOut": "預覽請求逾時",
+      "diffRequestTimedOut": "Diff 請求逾時",
+      "branchCompareRequestTimedOut": "分支比較請求逾時",
+      "commitDiffRequestTimedOut": "提交差異請求逾時",
+      "saveRequestTimedOut": "儲存請求逾時",
+      "reloadRequestTimedOut": "重載請求逾時",
+      "noChanges": "暫無變更。",
+      "noDiffOutput": "無差異輸出。",
+      "diffTitleWorkspace": "Diff · 工作區",
+      "diffDescriptionWorkingTree": "工作區變更（HEAD）",
+      "diffTitleFile": "Diff · {name}",
+      "compareTitleFile": "比較 · {name}",
+      "compareTitleBranch": "比較 · {branch}",
+      "compareDescriptionPath": "{path} · 與 {branch} 比較",
+      "compareDescriptionBranch": "與 {branch} 比較",
+      "diffTitleCommitFile": "Diff · {name} @ {hash}",
+      "diffTitleCommit": "Diff · {hash}",
+      "diffDescriptionCommitPath": "{path} · 提交 {commit}",
+      "diffDescriptionCommit": "提交 {commit}",
+      "diffTitleConflictFile": "衝突 · {name}",
+      "diffDescriptionConflict": "{path} · 磁碟與未儲存內容"
+    },
     "chat": {
       "chatInput": {
         "connecting": "連線中...",
@@ -1078,6 +1110,49 @@
         "moreFiles": "+{count} 個更多檔案",
         "plan": "計畫",
         "targetMode": "目標模式：{mode}"
+      },
+      "messageBranch": {
+        "previousBranchAria": "上一個分支",
+        "nextBranchAria": "下一個分支",
+        "pageOf": "{current} / {total}"
+      },
+      "terminal": {
+        "title": "終端",
+        "running": "執行中"
+      },
+      "reasoning": {
+        "thinking": "思考中...",
+        "thoughtForFewSeconds": "思考了幾秒",
+        "thoughtForSeconds": "思考了 {duration} 秒"
+      },
+      "messageList": {
+        "attachedResources": "附加資源",
+        "loading": "載入中...",
+        "error": "錯誤：{message}",
+        "emptyConversation": "目前會話暫無訊息。"
+      },
+      "liveTurnStats": {
+        "thinking": "思考中...",
+        "streaming": "生成中",
+        "elapsedMinutes": "{value} 分鐘",
+        "elapsedSeconds": "{value} 秒",
+        "toolUseCount": "{count} 次工具呼叫"
+      },
+      "tool": {
+        "parameters": "參數",
+        "status": {
+          "approvalRequested": "等待授權",
+          "approvalResponded": "已回應",
+          "inputAvailable": "執行中",
+          "inputStreaming": "等待中",
+          "outputAvailable": "已完成",
+          "outputDenied": "已拒絕",
+          "outputError": "錯誤"
+        }
+      },
+      "contentParts": {
+        "showingTailOutput": "為確保效能，串流輸出時僅顯示尾端內容。",
+        "result": "結果"
       }
     },
     "diffPreview": {

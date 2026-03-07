@@ -513,6 +513,11 @@
   "SettingsPages": {
     "agentsLoading": "加载 Agent 设置中..."
   },
+  "CommitPage": {
+    "title": "提交代码",
+    "invalidFolderId": "无效的 folderId",
+    "loadingRepo": "正在加载仓库..."
+  },
   "Folder": {
     "common": {
       "all": "全部",
@@ -1023,6 +1028,33 @@
         "saving": "保存中..."
       }
     },
+    "workspaceContext": {
+      "confirmCloseDirtyTab": "文件“{title}”有未保存更改，确定关闭吗？",
+      "confirmCloseOtherDirtyTabs": "其它标签页有未保存更改，确定关闭吗？",
+      "confirmCloseAllDirtyTabs": "存在未保存更改，确定关闭全部标签页吗？",
+      "unableLoadContent": "无法加载内容。\n\n{message}",
+      "previewRequestTimedOut": "预览请求超时",
+      "diffRequestTimedOut": "Diff 请求超时",
+      "branchCompareRequestTimedOut": "分支比较请求超时",
+      "commitDiffRequestTimedOut": "提交差异请求超时",
+      "saveRequestTimedOut": "保存请求超时",
+      "reloadRequestTimedOut": "重载请求超时",
+      "noChanges": "暂无变更。",
+      "noDiffOutput": "无差异输出。",
+      "diffTitleWorkspace": "Diff · 工作区",
+      "diffDescriptionWorkingTree": "工作区变更（HEAD）",
+      "diffTitleFile": "Diff · {name}",
+      "compareTitleFile": "比较 · {name}",
+      "compareTitleBranch": "比较 · {branch}",
+      "compareDescriptionPath": "{path} · 与 {branch} 比较",
+      "compareDescriptionBranch": "与 {branch} 比较",
+      "diffTitleCommitFile": "Diff · {name} @ {hash}",
+      "diffTitleCommit": "Diff · {hash}",
+      "diffDescriptionCommitPath": "{path} · 提交 {commit}",
+      "diffDescriptionCommit": "提交 {commit}",
+      "diffTitleConflictFile": "冲突 · {name}",
+      "diffDescriptionConflict": "{path} · 磁盘与未保存内容"
+    },
     "chat": {
       "chatInput": {
         "connecting": "连接中...",
@@ -1078,6 +1110,49 @@
         "moreFiles": "+{count} 个更多文件",
         "plan": "计划",
         "targetMode": "目标模式：{mode}"
+      },
+      "messageBranch": {
+        "previousBranchAria": "上一分支",
+        "nextBranchAria": "下一分支",
+        "pageOf": "{current} / {total}"
+      },
+      "terminal": {
+        "title": "终端",
+        "running": "运行中"
+      },
+      "reasoning": {
+        "thinking": "思考中...",
+        "thoughtForFewSeconds": "思考了几秒",
+        "thoughtForSeconds": "思考了 {duration} 秒"
+      },
+      "messageList": {
+        "attachedResources": "附加资源",
+        "loading": "加载中...",
+        "error": "错误：{message}",
+        "emptyConversation": "当前会话暂无消息。"
+      },
+      "liveTurnStats": {
+        "thinking": "思考中...",
+        "streaming": "生成中",
+        "elapsedMinutes": "{value} 分钟",
+        "elapsedSeconds": "{value} 秒",
+        "toolUseCount": "{count} 次工具调用"
+      },
+      "tool": {
+        "parameters": "参数",
+        "status": {
+          "approvalRequested": "等待授权",
+          "approvalResponded": "已响应",
+          "inputAvailable": "运行中",
+          "inputStreaming": "等待中",
+          "outputAvailable": "已完成",
+          "outputDenied": "已拒绝",
+          "outputError": "错误"
+        }
+      },
+      "contentParts": {
+        "showingTailOutput": "为保证性能，流式输出时仅显示尾部内容。",
+        "result": "结果"
       }
     },
     "diffPreview": {

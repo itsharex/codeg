@@ -2,6 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { Loader2 } from "lucide-react"
 import { CommitWorkspace } from "@/components/layout/commit-dialog"
@@ -19,6 +20,7 @@ interface FolderLoadState {
 }
 
 function CommitPageInner() {
+  const t = useTranslations("CommitPage")
   const searchParams = useSearchParams()
   const [state, setState] = useState<FolderLoadState>({
     loadedId: null,
@@ -76,7 +78,8 @@ function CommitPageInner() {
       <AppTitleBar
         center={
           <div className="text-sm font-semibold tracking-tight">
-            Git Commit{hasValidFolderId && folder ? ` · ${folder.name}` : ""}
+            {t("title")}
+            {hasValidFolderId && folder ? ` · ${folder.name}` : ""}
           </div>
         }
       />
@@ -84,12 +87,12 @@ function CommitPageInner() {
       <main className="flex-1 min-h-0 p-3">
         {!hasValidFolderId ? (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            缺少有效的 folderId 参数
+            {t("invalidFolderId")}
           </div>
         ) : loading ? (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            正在加载仓库信息...
+            {t("loadingRepo")}
           </div>
         ) : error ? (
           <div className="rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive">

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useLocale, useTranslations } from "next-intl"
 import type { LiveMessage } from "@/contexts/acp-connections-context"
 import { inferLiveToolName } from "@/lib/tool-call-normalization"
 import {
@@ -8,11 +9,6 @@ import {
   estimateChangedLineStats,
 } from "@/lib/line-change-stats"
 import { FilePenLine, Timer, Wrench } from "lucide-react"
-
-function formatElapsed(ms: number): string {
-  if (ms >= 60_000) return `${(ms / 60_000).toFixed(1)}m`
-  return `${(ms / 1_000).toFixed(1)}s`
-}
 
 interface LiveTurnStatsProps {
   message: LiveMessage
@@ -27,14 +23,9 @@ interface LiveEditStats extends LineChangeStats {
   files: number
 }
 
-const COMPACT_NUMBER = new Intl.NumberFormat("en-US", {
-  notation: "compact",
-  maximumFractionDigits: 1,
-})
-
-function formatCompactInt(n: number): string {
+function formatCompactInt(n: number, formatter: Intl.NumberFormat): string {
   if (n < 1000) return String(n)
-  return COMPACT_NUMBER.format(n).toUpperCase()
+  return formatter.format(n)
 }
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -267,8 +258,18 @@ function extractLiveEditStats(message: LiveMessage): LiveEditStats {
 }
 
 export function LiveTurnStats({ message }: LiveTurnStatsProps) {
+  const locale = useLocale()
+  const t = useTranslations("Folder.chat.liveTurnStats")
   const [elapsed, setElapsed] = useState(() => Date.now() - message.startedAt)
   const editStats = useMemo(() => extractLiveEditStats(message), [message])
+  const compactNumberFormatter = useMemo(
+    () =>
+      new Intl.NumberFormat(locale, {
+        notation: "compact",
+        maximumFractionDigits: 1,
+      }),
+    [locale]
+  )
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -295,26 +296,32 @@ export function LiveTurnStats({ message }: LiveTurnStatsProps) {
     isThinking = true
   }
 
+  const elapsedLabel =
+    elapsed >= 60_000
+      ? t("elapsedMinutes", { value: (elapsed / 60_000).toFixed(1) })
+      : t("elapsedSeconds", { value: (elapsed / 1_000).toFixed(1) })
+
   return (
     <div className="flex h-8 shrink-0 items-center justify-center gap-3 px-4 text-xs leading-none text-muted-foreground">
       <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary animate-pulse shrink-0" />
       {isThinking && message.content.length <= 1 ? (
-        <span>Thinking...</span>
+        <span>{t("thinking")}</span>
       ) : (
-        <span>Streaming</span>
+        <span>{t("streaming")}</span>
       )}
       <span className="text-border leading-none">|</span>
       <span className="inline-flex items-center gap-1 leading-none">
         <Timer className="h-3 w-3 shrink-0" />
-        {formatElapsed(elapsed)}
+        {elapsedLabel}
       </span>
       {editStats.files > 0 && (
         <>
           <span className="text-border leading-none">|</span>
           <span className="inline-flex items-center gap-1 leading-none">
             <FilePenLine className="h-3 w-3 shrink-0" />
-            {editStats.files}F +{formatCompactInt(editStats.additions)}/-
-            {formatCompactInt(editStats.deletions)}
+            {editStats.files}F +
+            {formatCompactInt(editStats.additions, compactNumberFormatter)}/-
+            {formatCompactInt(editStats.deletions, compactNumberFormatter)}
           </span>
         </>
       )}
@@ -323,7 +330,7 @@ export function LiveTurnStats({ message }: LiveTurnStatsProps) {
           <span className="text-border leading-none">|</span>
           <span className="inline-flex items-center gap-1 leading-none">
             <Wrench className="h-3 w-3 shrink-0" />
-            {toolCallCount} tool {toolCallCount === 1 ? "use" : "uses"}
+            {t("toolUseCount", { count: toolCallCount })}
           </span>
         </>
       )}

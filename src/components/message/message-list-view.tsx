@@ -25,6 +25,7 @@ import {
 } from "@/components/ai-elements/message-thread"
 import { Message, MessageContent } from "@/components/ai-elements/message"
 import { Loader2 } from "lucide-react"
+import { useTranslations } from "next-intl"
 import {
   buildPlanKey,
   extractLatestPlanEntriesFromMessages,
@@ -46,7 +47,10 @@ interface ResolvedMessageGroup extends MessageGroup {
   resources: UserResourceDisplay[]
 }
 
-function fallbackExtractUserResources(group: MessageGroup): {
+function fallbackExtractUserResources(
+  group: MessageGroup,
+  attachedResourcesText: string
+): {
   parts: AdaptedContentPart[]
   resources: UserResourceDisplay[]
 } {
@@ -87,14 +91,17 @@ function fallbackExtractUserResources(group: MessageGroup): {
   }
 
   if (parsedParts.length === 0 && dedupedResources.length > 0) {
-    parsedParts.push({ type: "text", text: "Attached resources" })
+    parsedParts.push({ type: "text", text: attachedResourcesText })
   }
 
   return { parts: parsedParts, resources: dedupedResources }
 }
 
-function resolveMessageGroup(group: MessageGroup): ResolvedMessageGroup {
-  const resolved = fallbackExtractUserResources(group)
+function resolveMessageGroup(
+  group: MessageGroup,
+  attachedResourcesText: string
+): ResolvedMessageGroup {
+  const resolved = fallbackExtractUserResources(group, attachedResourcesText)
   return {
     ...group,
     parts: resolved.parts,
@@ -161,6 +168,7 @@ export function MessageListView({
   onPendingClear,
   isActive = true,
 }: MessageListViewProps) {
+  const t = useTranslations("Folder.chat.messageList")
   const { detail, loading, error, refetch } = useDbMessageDetail(conversationId)
   const turnCount = detail?.turns.length ?? 0
 
@@ -225,12 +233,16 @@ export function MessageListView({
     [pendingMessages]
   )
   const resolvedGroups = useMemo(
-    () => groups.map(resolveMessageGroup),
-    [groups]
+    () =>
+      groups.map((group) => resolveMessageGroup(group, t("attachedResources"))),
+    [groups, t]
   )
   const resolvedPendingGroups = useMemo(
-    () => pendingGroups.map(resolveMessageGroup),
-    [pendingGroups]
+    () =>
+      pendingGroups.map((group) =>
+        resolveMessageGroup(group, t("attachedResources"))
+      ),
+    [pendingGroups, t]
   )
 
   const showLiveMessage = Boolean(
@@ -245,7 +257,7 @@ export function MessageListView({
       <div className="flex h-full items-center justify-center">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading...</span>
+          <span>{t("loading")}</span>
         </div>
       </div>
     )
@@ -255,7 +267,9 @@ export function MessageListView({
     return (
       <div className="p-6">
         <div className="text-center py-12">
-          <p className="text-destructive text-sm">Error: {error}</p>
+          <p className="text-destructive text-sm">
+            {t("error", { message: error })}
+          </p>
         </div>
       </div>
     )
@@ -276,7 +290,7 @@ export function MessageListView({
           !showLiveMessage ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground text-sm">
-                No messages in this conversation.
+                {t("emptyConversation")}
               </p>
             </div>
           ) : (

@@ -3,6 +3,7 @@ import type { BundledLanguage } from "shiki"
 import type { AdaptedContentPart } from "@/lib/adapters/ai-elements-adapter"
 import type { MessageRole } from "@/lib/types"
 import { normalizeToolName } from "@/lib/tool-call-normalization"
+import { useTranslations } from "next-intl"
 import {
   countUnifiedDiffLineChanges,
   estimateChangedLineStats,
@@ -1881,6 +1882,7 @@ const ToolCallPart = memo(function ToolCallPart({
 }: {
   part: Extract<AdaptedContentPart, { type: "tool-call" }>
 }) {
+  const t = useTranslations("Folder.chat.contentParts")
   const [manualOpen, setManualOpen] = useState(false)
   const normalizedToolName = useMemo(
     () => normalizeToolName(part.toolName),
@@ -2046,7 +2048,7 @@ const ToolCallPart = memo(function ToolCallPart({
                 />
                 {liveOutputTruncated && (
                   <div className="text-[11px] text-muted-foreground">
-                    Showing tail output while streaming for performance.
+                    {t("showingTailOutput")}
                   </div>
                 )}
               </div>
@@ -2068,9 +2070,14 @@ const ToolResultPart = memo(function ToolResultPart({
 }: {
   part: Extract<AdaptedContentPart, { type: "tool-result" }>
 }) {
+  const t = useTranslations("Folder.chat.contentParts")
   return (
     <Tool>
-      <ToolHeader type="dynamic-tool" state={part.state} toolName="Result" />
+      <ToolHeader
+        type="dynamic-tool"
+        state={part.state}
+        toolName={t("result")}
+      />
       <ToolContent>
         <ToolOutput output={part.output} errorText={part.errorText} />
       </ToolContent>

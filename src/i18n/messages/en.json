@@ -513,6 +513,11 @@
   "SettingsPages": {
     "agentsLoading": "Loading agent settings..."
   },
+  "CommitPage": {
+    "title": "Commit",
+    "invalidFolderId": "Invalid folder ID",
+    "loadingRepo": "Loading repository..."
+  },
   "Folder": {
     "common": {
       "all": "All",
@@ -1023,6 +1028,33 @@
         "saving": "Saving..."
       }
     },
+    "workspaceContext": {
+      "confirmCloseDirtyTab": "Close \"{title}\" without saving?",
+      "confirmCloseOtherDirtyTabs": "Close other tabs with unsaved changes?",
+      "confirmCloseAllDirtyTabs": "Close all tabs with unsaved changes?",
+      "unableLoadContent": "Unable to load content.\n\n{message}",
+      "previewRequestTimedOut": "Preview request timed out",
+      "diffRequestTimedOut": "Diff request timed out",
+      "branchCompareRequestTimedOut": "Branch compare request timed out",
+      "commitDiffRequestTimedOut": "Commit diff request timed out",
+      "saveRequestTimedOut": "Save request timed out",
+      "reloadRequestTimedOut": "Reload request timed out",
+      "noChanges": "No changes.",
+      "noDiffOutput": "No diff output.",
+      "diffTitleWorkspace": "Diff · Workspace",
+      "diffDescriptionWorkingTree": "Working tree (HEAD)",
+      "diffTitleFile": "Diff · {name}",
+      "compareTitleFile": "Compare · {name}",
+      "compareTitleBranch": "Compare · {branch}",
+      "compareDescriptionPath": "{path} · compare with {branch}",
+      "compareDescriptionBranch": "compare with {branch}",
+      "diffTitleCommitFile": "Diff · {name} @ {hash}",
+      "diffTitleCommit": "Diff · {hash}",
+      "diffDescriptionCommitPath": "{path} · commit {commit}",
+      "diffDescriptionCommit": "commit {commit}",
+      "diffTitleConflictFile": "Conflict · {name}",
+      "diffDescriptionConflict": "{path} · disk vs unsaved"
+    },
     "chat": {
       "chatInput": {
         "connecting": "Connecting...",
@@ -1078,6 +1110,49 @@
         "moreFiles": "+{count} more files",
         "plan": "Plan",
         "targetMode": "Target mode: {mode}"
+      },
+      "messageBranch": {
+        "previousBranchAria": "Previous branch",
+        "nextBranchAria": "Next branch",
+        "pageOf": "{current} of {total}"
+      },
+      "terminal": {
+        "title": "Terminal",
+        "running": "Running"
+      },
+      "reasoning": {
+        "thinking": "Thinking...",
+        "thoughtForFewSeconds": "Thought for a few seconds",
+        "thoughtForSeconds": "Thought for {duration} seconds"
+      },
+      "messageList": {
+        "attachedResources": "Attached resources",
+        "loading": "Loading...",
+        "error": "Error: {message}",
+        "emptyConversation": "No messages in this conversation."
+      },
+      "liveTurnStats": {
+        "thinking": "Thinking...",
+        "streaming": "Streaming",
+        "elapsedMinutes": "{value}m",
+        "elapsedSeconds": "{value}s",
+        "toolUseCount": "{count} tool {count, plural, one {use} other {uses}}"
+      },
+      "tool": {
+        "parameters": "Parameters",
+        "status": {
+          "approvalRequested": "Awaiting Approval",
+          "approvalResponded": "Responded",
+          "inputAvailable": "Running",
+          "inputStreaming": "Pending",
+          "outputAvailable": "Completed",
+          "outputDenied": "Denied",
+          "outputError": "Error"
+        }
+      },
+      "contentParts": {
+        "showingTailOutput": "Showing tail output while streaming for performance.",
+        "result": "Result"
       }
     },
     "diffPreview": {

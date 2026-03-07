@@ -18,6 +18,7 @@ import {
   WrenchIcon,
   XCircleIcon,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { isValidElement } from "react"
 
 import { CodeBlock } from "./code-block"
@@ -47,16 +48,6 @@ export type ToolHeaderProps = {
     }
 )
 
-const statusLabels: Record<ToolPart["state"], string> = {
-  "approval-requested": "Awaiting Approval",
-  "approval-responded": "Responded",
-  "input-available": "Running",
-  "input-streaming": "Pending",
-  "output-available": "Completed",
-  "output-denied": "Denied",
-  "output-error": "Error",
-}
-
 const statusIcons: Record<ToolPart["state"], ReactNode> = {
   "approval-requested": <ClockIcon className="size-4 text-yellow-600" />,
   "approval-responded": <CheckCircleIcon className="size-4 text-blue-600" />,
@@ -67,10 +58,10 @@ const statusIcons: Record<ToolPart["state"], ReactNode> = {
   "output-error": <XCircleIcon className="size-4 text-red-600" />,
 }
 
-export const getStatusBadge = (status: ToolPart["state"]) => (
+export const getStatusBadge = (status: ToolPart["state"], label: string) => (
   <Badge className="gap-1.5 rounded-full text-xs" variant="secondary">
     {statusIcons[status]}
-    {statusLabels[status]}
+    {label}
   </Badge>
 )
 
@@ -84,8 +75,23 @@ export const ToolHeader = ({
   toolName,
   ...props
 }: ToolHeaderProps) => {
+  const t = useTranslations("Folder.chat.tool")
   const derivedName =
     type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-")
+  const statusLabel =
+    state === "approval-requested"
+      ? t("status.approvalRequested")
+      : state === "approval-responded"
+        ? t("status.approvalResponded")
+        : state === "input-available"
+          ? t("status.inputAvailable")
+          : state === "input-streaming"
+            ? t("status.inputStreaming")
+            : state === "output-available"
+              ? t("status.outputAvailable")
+              : state === "output-denied"
+                ? t("status.outputDenied")
+                : t("status.outputError")
 
   return (
     <CollapsibleTrigger
@@ -103,7 +109,7 @@ export const ToolHeader = ({
           {title ?? derivedName}
         </span>
         {titleSuffix ? <span className="shrink-0">{titleSuffix}</span> : null}
-        <span className="shrink-0">{getStatusBadge(state)}</span>
+        <span className="shrink-0">{getStatusBadge(state, statusLabel)}</span>
       </div>
       <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
     </CollapsibleTrigger>
@@ -127,6 +133,7 @@ export type ToolInputProps = ComponentProps<"div"> & {
 }
 
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
+  const t = useTranslations("Folder.chat.tool")
   const formattedCode = (() => {
     if (typeof input === "string") {
       try {
@@ -142,7 +149,7 @@ export const ToolInput = ({ className, input, ...props }: ToolInputProps) => {
   return (
     <div className={cn("space-y-2 overflow-hidden", className)} {...props}>
       <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-        Parameters
+        {t("parameters")}
       </h4>
       <div className="rounded-md bg-muted/50">
         <CodeBlock code={formattedCode} language="json" />

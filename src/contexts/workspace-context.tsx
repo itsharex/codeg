@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react"
+import { useTranslations } from "next-intl"
 import { useFolderContext } from "@/contexts/folder-context"
 import {
   gitDiff,
@@ -172,6 +173,7 @@ interface WorkspaceProviderProps {
 }
 
 export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
+  const t = useTranslations("Folder.workspaceContext")
   const { folder, folderId } = useFolderContext()
   const folderPath = folder?.path
   const storageKey = useMemo(
@@ -270,7 +272,11 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
   const rejectTab = useCallback(
     (tabId: string, errorMessage: string) => {
-      resolveTab(tabId, `Unable to load content.\n\n${errorMessage}`, false)
+      resolveTab(
+        tabId,
+        t("unableLoadContent", { message: errorMessage }),
+        false
+      )
       setFileTabs((prev) =>
         prev.map((tab) =>
           tab.id === tabId
@@ -283,7 +289,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         )
       )
     },
-    [resolveTab]
+    [resolveTab, t]
   )
 
   const resolveRichDiffTab = useCallback(
@@ -333,7 +339,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
             })(),
           ]),
           15_000,
-          "Preview request timed out"
+          t("previewRequestTimedOut")
         )
         setFileTabs((prev) =>
           prev.map((tab) =>
@@ -360,7 +366,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         rejectTab(tabId, error instanceof Error ? error.message : String(error))
       }
     },
-    [folderPath, rejectTab, upsertLoadingTab]
+    [folderPath, rejectTab, t, upsertLoadingTab]
   )
 
   const openWorkingTreeDiff = useCallback(
@@ -372,8 +378,8 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
       if (!rawPath) {
         const tabId = "diff:working:all"
-        const title = "Diff · Workspace"
-        const description = "Working tree (HEAD)"
+        const title = t("diffTitleWorkspace")
+        const description = t("diffDescriptionWorkingTree")
         upsertLoadingTab(
           loadingTab(tabId, "diff", title, description, null, "diff")
         )
@@ -381,9 +387,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
           const result = await withTimeout(
             gitDiff(folderPath),
             20_000,
-            "Diff request timed out"
+            t("diffRequestTimedOut")
           )
-          resolveTab(tabId, result || "No changes.", false)
+          resolveTab(tabId, result || t("noChanges"), false)
         } catch (error) {
           rejectTab(
             tabId,
@@ -399,7 +405,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       if (mode === "overview") {
         const encodedPath = encodeURIComponent(path)
         const tabId = `diff:working-overview:${encodedPath}`
-        const title = `Diff · ${fileName(path)}`
+        const title = t("diffTitleFile", { name: fileName(path) })
         const description = path
         upsertLoadingTab(
           loadingTab(tabId, "diff", title, description, path, "diff")
@@ -409,9 +415,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
           const result = await withTimeout(
             gitDiff(folderPath, path),
             20_000,
-            "Diff request timed out"
+            t("diffRequestTimedOut")
           )
-          resolveTab(tabId, result || "No changes.", false)
+          resolveTab(tabId, result || t("noChanges"), false)
         } catch (error) {
           rejectTab(
             tabId,
@@ -423,7 +429,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
       if (mode === "unified") {
         const tabId = `diff:working:${path}:unified`
-        const title = `Diff · ${fileName(path)}`
+        const title = t("diffTitleFile", { name: fileName(path) })
         const description = path
         upsertLoadingTab(
           loadingTab(tabId, "diff", title, description, path, "diff")
@@ -433,9 +439,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
           const result = await withTimeout(
             gitDiff(folderPath, path),
             20_000,
-            "Diff request timed out"
+            t("diffRequestTimedOut")
           )
-          resolveTab(tabId, result || "No changes.", false)
+          resolveTab(tabId, result || t("noChanges"), false)
         } catch (error) {
           rejectTab(
             tabId,
@@ -446,7 +452,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       }
 
       const tabId = `diff:working:${path}`
-      const title = `Diff · ${fileName(path)}`
+      const title = t("diffTitleFile", { name: fileName(path) })
       const description = path
       const lang = languageFromPath(path)
 
@@ -465,14 +471,14 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
             })),
           ]),
           20_000,
-          "Diff request timed out"
+          t("diffRequestTimedOut")
         )
         resolveRichDiffTab(tabId, originalContent, modifiedResult.content)
       } catch (error) {
         rejectTab(tabId, error instanceof Error ? error.message : String(error))
       }
     },
-    [folderPath, rejectTab, resolveTab, resolveRichDiffTab, upsertLoadingTab]
+    [folderPath, rejectTab, resolveTab, resolveRichDiffTab, t, upsertLoadingTab]
   )
 
   const openBranchDiff = useCallback(
@@ -494,11 +500,11 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
           ? `diff:branch-overview:${encodedBranch}:${encodedPath}`
           : `diff:branch:${targetBranch}:${path ?? "all"}`
       const title = path
-        ? `Compare · ${fileName(path)}`
-        : `Compare · ${targetBranch}`
+        ? t("compareTitleFile", { name: fileName(path) })
+        : t("compareTitleBranch", { branch: targetBranch })
       const description = path
-        ? `${path} · compare with ${targetBranch}`
-        : `compare with ${targetBranch}`
+        ? t("compareDescriptionPath", { path, branch: targetBranch })
+        : t("compareDescriptionBranch", { branch: targetBranch })
 
       if (mode !== "overview" && path) {
         const lang = languageFromPath(path)
@@ -517,7 +523,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
               })),
             ]),
             20_000,
-            "Branch compare request timed out"
+            t("branchCompareRequestTimedOut")
           )
           resolveRichDiffTab(tabId, originalContent, modifiedResult.content)
         } catch (error) {
@@ -537,14 +543,14 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         const result = await withTimeout(
           gitDiffWithBranch(folderPath, targetBranch, path ?? undefined),
           20_000,
-          "Branch compare request timed out"
+          t("branchCompareRequestTimedOut")
         )
-        resolveTab(tabId, result || "No changes.", false)
+        resolveTab(tabId, result || t("noChanges"), false)
       } catch (error) {
         rejectTab(tabId, error instanceof Error ? error.message : String(error))
       }
     },
-    [folderPath, rejectTab, resolveRichDiffTab, resolveTab, upsertLoadingTab]
+    [folderPath, rejectTab, resolveRichDiffTab, resolveTab, t, upsertLoadingTab]
   )
 
   const openCommitDiff = useCallback(
@@ -553,11 +559,14 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       const path = rawPath ? normalizePath(rawPath) : null
       const tabId = `diff:commit:${commit}:${path ?? "all"}`
       const title = path
-        ? `Diff · ${fileName(path)} @ ${commit.slice(0, 7)}`
-        : `Diff · ${commit.slice(0, 7)}`
+        ? t("diffTitleCommitFile", {
+            name: fileName(path),
+            hash: commit.slice(0, 7),
+          })
+        : t("diffTitleCommit", { hash: commit.slice(0, 7) })
       const description = path
-        ? `${path} · commit ${commit}`
-        : message || `commit ${commit}`
+        ? t("diffDescriptionCommitPath", { path, commit })
+        : message || t("diffDescriptionCommit", { commit })
 
       if (path) {
         const lang = languageFromPath(path)
@@ -572,7 +581,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
               gitShowFile(folderPath, path, commit).catch(() => ""),
             ]),
             20_000,
-            "Commit diff request timed out"
+            t("commitDiffRequestTimedOut")
           )
           resolveRichDiffTab(tabId, originalContent, modifiedContent)
         } catch (error) {
@@ -590,9 +599,9 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
           const result = await withTimeout(
             gitShowDiff(folderPath, commit, undefined),
             20_000,
-            "Commit diff request timed out"
+            t("commitDiffRequestTimedOut")
           )
-          resolveTab(tabId, result || "No diff output.", false)
+          resolveTab(tabId, result || t("noDiffOutput"), false)
         } catch (error) {
           rejectTab(
             tabId,
@@ -601,14 +610,14 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         }
       }
     },
-    [folderPath, rejectTab, resolveTab, resolveRichDiffTab, upsertLoadingTab]
+    [folderPath, rejectTab, resolveTab, resolveRichDiffTab, t, upsertLoadingTab]
   )
 
   const openSessionFileDiff = useCallback(
     (filePath: string, diffContent: string, groupLabel: string) => {
       const path = normalizePath(filePath)
       const tabId = `diff:session:${groupLabel}:${path}`
-      const title = `Diff · ${fileName(path)}`
+      const title = t("diffTitleFile", { name: fileName(path) })
       const description = `${path} · ${groupLabel}`
 
       const tab: FileWorkspaceTab = {
@@ -624,15 +633,15 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
       upsertLoadingTab(tab)
     },
-    [upsertLoadingTab]
+    [t, upsertLoadingTab]
   )
 
   const openExternalConflictDiff = useCallback(
     (filePath: string, diskContent: string, unsavedContent: string) => {
       const path = normalizePath(filePath)
       const tabId = `diff:external-conflict:${path}`
-      const title = `Conflict · ${fileName(path)}`
-      const description = `${path} · disk vs unsaved`
+      const title = t("diffTitleConflictFile", { name: fileName(path) })
+      const description = t("diffDescriptionConflict", { path })
       const language = languageFromPath(path)
 
       const tab: FileWorkspaceTab = {
@@ -650,7 +659,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
       upsertLoadingTab(tab)
     },
-    [upsertLoadingTab]
+    [t, upsertLoadingTab]
   )
 
   const updateActiveFileContent = useCallback(
@@ -712,7 +721,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
             expectedEtag
           ),
           20_000,
-          "Save request timed out"
+          t("saveRequestTimedOut")
         )
 
         setFileTabs((prev) =>
@@ -753,7 +762,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         return false
       }
     },
-    [folderPath]
+    [folderPath, t]
   )
 
   const saveActiveFile = useCallback(
@@ -799,7 +808,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
             })(),
           ]),
           15_000,
-          "Reload request timed out"
+          t("reloadRequestTimedOut")
         )
         setFileTabs((prev) =>
           prev.map((candidate) =>
@@ -838,7 +847,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         )
       }
     },
-    [folderPath]
+    [folderPath, t]
   )
 
   const reloadActiveFile = useCallback(async () => {
@@ -866,7 +875,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         const tab = prev[idx]
         if (isDirtyFileTab(tab)) {
           const confirmed = window.confirm(
-            `“${tab.title}” 有未保存更改，确定关闭吗？`
+            t("confirmCloseDirtyTab", { title: tab.title })
           )
           if (!confirmed) return prev
         }
@@ -886,7 +895,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         return next
       })
     },
-    [activateConversationPane]
+    [activateConversationPane, t]
   )
 
   const closeOtherFileTabs = useCallback(
@@ -897,9 +906,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
 
         const closingTabs = prev.filter((tab) => tab.id !== tabId)
         if (closingTabs.some(isDirtyFileTab)) {
-          const confirmed = window.confirm(
-            "存在未保存文件，确定关闭其它标签页吗？"
-          )
+          const confirmed = window.confirm(t("confirmCloseOtherDirtyTabs"))
           if (!confirmed) return prev
         }
 
@@ -908,15 +915,13 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
         return remaining
       })
     },
-    [activateFilePane]
+    [activateFilePane, t]
   )
 
   const closeAllFileTabs = useCallback(() => {
     setFileTabs((prev) => {
       if (prev.some(isDirtyFileTab)) {
-        const confirmed = window.confirm(
-          "存在未保存文件，确定关闭全部标签页吗？"
-        )
+        const confirmed = window.confirm(t("confirmCloseAllDirtyTabs"))
         if (!confirmed) return prev
       }
 
@@ -924,7 +929,7 @@ export function WorkspaceProvider({ children }: WorkspaceProviderProps) {
       activateConversationPane()
       return []
     })
-  }, [activateConversationPane])
+  }, [activateConversationPane, t])
 
   const reorderFileTabs = useCallback((tabs: FileWorkspaceTab[]) => {
     setFileTabs(tabs)
