@@ -16,6 +16,10 @@ pub struct CommitWindowState {
     owner_by_commit_label: Mutex<HashMap<String, String>>,
 }
 
+pub fn folder_window_label(folder_id: i32) -> String {
+    format!("folder-{folder_id}")
+}
+
 pub(crate) fn apply_platform_window_style<'a, R, M>(
     builder: WebviewWindowBuilder<'a, R, M>,
 ) -> WebviewWindowBuilder<'a, R, M>
@@ -208,8 +212,19 @@ pub async fn open_folder_window(
         .await
         .map_err(AppCommandError::from)?;
 
-    // Create folder window with unique label
-    let label = format!("folder-{}", uuid::Uuid::new_v4());
+    let label = folder_window_label(entry.id);
+    if let Some(existing) = app.get_webview_window(&label) {
+        ensure_windows_undecorated(&existing);
+        let _ = existing.unminimize();
+        existing.set_focus().map_err(|e| {
+            AppCommandError::window("Failed to focus folder window", e.to_string())
+        })?;
+        if let Some(w) = app.get_webview_window("welcome") {
+            let _ = w.close();
+        }
+        return Ok(());
+    }
+
     let url = WebviewUrl::App(format!("folder?id={}", entry.id).into());
     let builder = WebviewWindowBuilder::new(&app, &label, url)
         .title(&entry.name)

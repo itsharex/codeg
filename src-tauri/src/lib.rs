@@ -74,7 +74,7 @@ pub fn run() {
                 let _ = windows::open_welcome_window(app.handle());
             } else {
                 for entry in &open_folders {
-                    let label = format!("folder-{}", uuid::Uuid::new_v4());
+                    let label = windows::folder_window_label(entry.id);
                     let url = tauri::WebviewUrl::App(format!("folder?id={}", entry.id).into());
                     let builder = tauri::WebviewWindowBuilder::new(app, &label, url)
                         .title(&entry.name)
