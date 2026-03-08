@@ -266,11 +266,28 @@ export function MessageInput({
   const lastDomDropAtRef = useRef(0)
   const composingRef = useRef(false)
   const textRef = useRef(text)
+  const disabledRef = useRef(disabled)
+  const isPromptingRef = useRef(isPrompting)
+  const dragActiveRef = useRef(false)
   const canAttachImages = promptCapabilities.image
 
   useEffect(() => {
     textRef.current = text
   }, [text])
+
+  useEffect(() => {
+    disabledRef.current = disabled
+  }, [disabled])
+
+  useEffect(() => {
+    isPromptingRef.current = isPrompting
+  }, [isPrompting])
+
+  const setDragActiveIfChanged = useCallback((next: boolean) => {
+    if (dragActiveRef.current === next) return
+    dragActiveRef.current = next
+    setIsDragActive(next)
+  }, [])
 
   useEffect(() => {
     if (!effectiveDraftStorageKey) return
@@ -584,6 +601,11 @@ export function MessageInput({
     [appendImagePathAttachments, appendResourceAttachments, canAttachImages]
   )
 
+  const appendPathsFromDropRef = useRef(appendPathsFromDrop)
+  useEffect(() => {
+    appendPathsFromDropRef.current = appendPathsFromDrop
+  }, [appendPathsFromDrop])
+
   const appendFilesFromInput = useCallback(
     async (files: File[]) => {
       if (files.length === 0) return
@@ -713,20 +735,22 @@ export function MessageInput({
       const host = containerRef.current
       if (!host) return
       if (payload.type === "leave") {
-        setIsDragActive(false)
+        setDragActiveIfChanged(false)
         return
       }
       const inside = pointWithinElement(payload.position, host)
       if (payload.type === "drop") {
-        setIsDragActive(false)
+        setDragActiveIfChanged(false)
         if (Date.now() - lastDomDropAtRef.current < 250) return
-        if (!inside || disabled || isPrompting) return
-        void appendPathsFromDrop(payload.paths).catch((error) => {
+        if (!inside || disabledRef.current || isPromptingRef.current) return
+        void appendPathsFromDropRef.current(payload.paths).catch((error) => {
           console.error("[MessageInput] drag drop paths failed:", error)
         })
         return
       }
-      setIsDragActive(inside && !disabled && !isPrompting)
+      setDragActiveIfChanged(
+        inside && !disabledRef.current && !isPromptingRef.current
+      )
     }
 
     const setup = async () => {
@@ -792,7 +816,7 @@ export function MessageInput({
       cancelled = true
       cleanupListeners()
     }
-  }, [appendPathsFromDrop, disabled, isPrompting])
+  }, [setDragActiveIfChanged])
 
   const removeAttachment = useCallback((id: string) => {
     setAttachments((prev) => prev.filter((item) => item.id !== id))
@@ -910,10 +934,10 @@ export function MessageInput({
       if (!hasDragFiles(event.dataTransfer)) return
       event.preventDefault()
       if (!disabled && !isPrompting) {
-        setIsDragActive(true)
+        setDragActiveIfChanged(true)
       }
     },
-    [disabled, isPrompting]
+    [disabled, isPrompting, setDragActiveIfChanged]
   )
 
   const handleContainerDragLeave = useCallback(
@@ -926,9 +950,9 @@ export function MessageInput({
       ) {
         return
       }
-      setIsDragActive(false)
+      setDragActiveIfChanged(false)
     },
-    []
+    [setDragActiveIfChanged]
   )
 
   const handleContainerDrop = useCallback(
@@ -936,7 +960,7 @@ export function MessageInput({
       if (!hasDragFiles(event.dataTransfer)) return
       event.preventDefault()
       lastDomDropAtRef.current = Date.now()
-      setIsDragActive(false)
+      setDragActiveIfChanged(false)
       if (disabled || isPrompting) return
       const files = Array.from(event.dataTransfer.files ?? [])
       if (files.length > 0) {
@@ -945,7 +969,7 @@ export function MessageInput({
         })
       }
     },
-    [appendFilesFromInput, disabled, isPrompting]
+    [appendFilesFromInput, disabled, isPrompting, setDragActiveIfChanged]
   )
 
   const hasImageAttachments = imageAttachments.length > 0
