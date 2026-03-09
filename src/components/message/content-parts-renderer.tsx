@@ -265,9 +265,8 @@ function buildCommandTerminalOutput(
     return isStreaming ? withTrailingNewline(prompt) : prompt
   }
 
-  const firstNonEmptyLine = terminalOutput
-    .split("\n")
-    .find((line) => line.trim().length > 0)
+  const lines = terminalOutput.split("\n")
+  const firstNonEmptyLine = lines.find((line) => line.trim().length > 0)
   const commandFirstLine = command.split("\n")[0]?.trim() ?? ""
 
   if (firstNonEmptyLine) {
@@ -925,6 +924,10 @@ function deriveToolTitle(
 
   // Command tools
   if (name === "bash" || name === "exec_command") {
+    const description = getField("description")
+    if (description) {
+      return ellipsis(description, 80)
+    }
     const direct = getField("command") ?? getField("cmd") ?? getField("script")
     const parsedCommand = commandFromUnknownValue(parsed)
     const fallback = extractCommandFromUnknownInput(titleSource)
