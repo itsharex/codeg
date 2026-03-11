@@ -365,8 +365,9 @@ export const ToolOutput = ({
       <CodeBlock code={JSON.stringify(output, null, 2)} language="json" />
     )
   } else if (typeof output === "string") {
+    const lang = detectOutputLanguage(output)
     const shouldRenderMd =
-      renderAsMarkdown ?? (detectOutputLanguage(output) === "log" && looksLikeMarkdown(output))
+      renderAsMarkdown ?? (lang === "log" && looksLikeMarkdown(output))
     if (shouldRenderMd) {
       Output = (
         <div className="prose prose-sm dark:prose-invert max-w-none p-3 text-sm [&_ul]:list-inside [&_ol]:list-inside">
