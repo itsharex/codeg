@@ -245,6 +245,10 @@ const ConversationTabView = memo(function ConversationTabView({
     disconnect: connDisconnect,
     sessionId: connSessionId,
   } = conn
+  const connStatusRef = useRef(connStatus)
+  useEffect(() => {
+    connStatusRef.current = connStatus
+  }, [connStatus])
   const isConnecting =
     connStatus === "connecting" || connStatus === "downloading"
   const connectionModes = useMemo(
@@ -281,7 +285,7 @@ const ConversationTabView = memo(function ConversationTabView({
         // resetting syncState while streaming. The useEffect with the
         // connStatus === "prompting" guard will handle it naturally
         // once prompting ends.
-        if (prevStatusRef.current === "prompting") return
+        if (connStatusRef.current === "prompting") return
         acknowledgePersistedDetail(refreshConversationId, refreshed)
       } catch (error) {
         setSyncState(refreshConversationId, "failed")
@@ -348,11 +352,14 @@ const ConversationTabView = memo(function ConversationTabView({
     acknowledgePersistedDetail(dbConversationId, detail)
   }, [acknowledgePersistedDetail, connStatus, dbConversationId, detail])
 
-  const prevStatusRef = useRef(connStatus)
+  const [prevConnStatus, setPrevConnStatus] = useState(connStatus)
+  const promptingJustEnded =
+    prevConnStatus === "prompting" && connStatus !== "prompting"
+  if (prevConnStatus !== connStatus) {
+    setPrevConnStatus(connStatus)
+  }
   useEffect(() => {
-    const prev = prevStatusRef.current
-    prevStatusRef.current = connStatus
-    if (prev !== "prompting" || connStatus === "prompting") return
+    if (!promptingJustEnded) return
 
     setSyncState(effectiveConversationId, "reconciling")
     const persistedId = dbConvIdRef.current
@@ -374,6 +381,7 @@ const ConversationTabView = memo(function ConversationTabView({
   }, [
     clearReconcileTimer,
     connStatus,
+    promptingJustEnded,
     effectiveConversationId,
     refreshConversations,
     refreshFromDb,

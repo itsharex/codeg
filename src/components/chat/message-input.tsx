@@ -7,7 +7,11 @@ import { open } from "@tauri-apps/plugin-dialog"
 import Image from "next/image"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 import { Ellipsis, FileSearch, Plus, Send, Square, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -1133,9 +1137,7 @@ export function MessageInput({
             <Plus className="size-4" />
           </Button>
           {/* 宽屏内联显示，窄屏（<300px）通过"更多"气泡显示 */}
-          <div className="hidden @[300px]:contents">
-            {selectorItems}
-          </div>
+          <div className="hidden @[300px]:contents">{selectorItems}</div>
           {hasAnySelector && (
             <Popover>
               <PopoverTrigger asChild>
