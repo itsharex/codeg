@@ -328,6 +328,19 @@ impl TerminalManager {
         }
         killed
     }
+
+    pub fn kill_all(&self) -> usize {
+        let mut instances: Vec<TerminalInstance> = {
+            let mut terminals = self.terminals.lock().unwrap();
+            terminals.drain().map(|(_, inst)| inst).collect()
+        };
+        let killed = instances.len();
+        for instance in &mut instances {
+            terminate_terminal(instance);
+        }
+        eprintln!("[TERM] kill_all killed_terminals={}", killed);
+        killed
+    }
 }
 
 fn terminate_terminal(instance: &mut TerminalInstance) {

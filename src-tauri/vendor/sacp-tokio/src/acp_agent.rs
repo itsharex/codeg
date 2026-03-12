@@ -230,7 +230,11 @@ impl ChildGuard {
 
 impl Drop for ChildGuard {
     fn drop(&mut self) {
-        let _ = self.0.start_kill();
+        if let Some(pid) = self.0.id() {
+            let _ = kill_tree::blocking::kill_tree(pid);
+        } else {
+            let _ = self.0.start_kill();
+        }
     }
 }
 

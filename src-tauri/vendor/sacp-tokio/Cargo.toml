@@ -61,6 +61,9 @@ version = "1.1"
 version = "1.48"
 features = ["full"]
 
+[dependencies.kill_tree]
+version = "0.2"
+
 [dependencies.tokio-util]
 version = "0.7"
 features = ["compat"]

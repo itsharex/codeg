@@ -149,21 +149,9 @@ impl TerminalInstance {
                 return Ok(());
             };
 
-            #[cfg(target_os = "windows")]
-            {
-                if let Some(pid) = child.id() {
-                    let _ = kill_tree::tokio::kill_tree(pid);
-                }
-            }
-
-            #[cfg(not(target_os = "windows"))]
-            {
-                if let Err(err) = child.kill().await {
-                    if err.kind() != std::io::ErrorKind::InvalidInput {
-                        return Err(TerminalRuntimeError::Internal(format!(
-                            "failed to kill terminal process: {err}"
-                        )));
-                    }
+            if let Some(pid) = child.id() {
+                if let Err(err) = kill_tree::tokio::kill_tree(pid).await {
+                    eprintln!("[ACP] kill_tree failed for pid {pid}: {err}");
                 }
             }
 

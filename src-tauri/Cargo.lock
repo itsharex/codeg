@@ -4730,6 +4730,7 @@ name = "sacp-tokio"
 version = "11.0.0-alpha.1"
 dependencies = [
  "futures",
+ "kill_tree",
  "sacp",
  "serde",
  "serde_json",

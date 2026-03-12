@@ -190,6 +190,22 @@ impl ConnectionManager {
         disconnected
     }
 
+    pub async fn disconnect_all(&self) -> usize {
+        let cmd_txs: Vec<_> = {
+            let mut connections = self.connections.lock().await;
+            connections
+                .drain()
+                .map(|(_, conn)| conn.cmd_tx)
+                .collect()
+        };
+        let disconnected = cmd_txs.len();
+        for cmd_tx in cmd_txs {
+            let _ = cmd_tx.send(ConnectionCommand::Disconnect).await;
+        }
+        eprintln!("[ACP] disconnect_all count={}", disconnected);
+        disconnected
+    }
+
     pub async fn list_connections(&self) -> Vec<ConnectionInfo> {
         let connections = self.connections.lock().await;
         connections.values().map(|c| c.info()).collect()

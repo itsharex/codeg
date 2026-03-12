@@ -268,9 +268,17 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app, event| {
+        .run(|app, event| {
             if let tauri::RunEvent::ExitRequested { .. } = event {
                 APP_QUITTING.store(true, Ordering::Relaxed);
+                // Kill all terminal sessions to prevent orphaned processes.
+                if let Some(tm) = app.try_state::<TerminalManager>() {
+                    tm.kill_all();
+                }
+                // Disconnect all ACP agent connections (kills agent process trees).
+                if let Some(cm) = app.try_state::<ConnectionManager>() {
+                    tauri::async_runtime::block_on(cm.disconnect_all());
+                }
             }
         });
 }
