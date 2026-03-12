@@ -141,6 +141,7 @@ const ConversationTabView = memo(function ConversationTabView({
   const {
     appendOptimisticTurn,
     completeTurn,
+    getSession,
     refetchDetail,
     syncTurnMetadata,
     removeConversation,
@@ -208,10 +209,13 @@ const ConversationTabView = memo(function ConversationTabView({
     error: detailError,
   } = useConversationDetail(effectiveConversationId)
 
+  const runtimeSession = getSession(effectiveConversationId)
+  const effectiveSessionStats = runtimeSession?.sessionStats ?? null
+
   useEffect(() => {
     if (!isActive) return
-    setSessionStats(detail?.session_stats ?? null)
-  }, [detail?.session_stats, isActive, setSessionStats])
+    setSessionStats(effectiveSessionStats)
+  }, [effectiveSessionStats, isActive, setSessionStats])
 
   const externalId = detail?.summary.external_id ?? undefined
   const draftStorageKey = useMemo(() => {
@@ -621,7 +625,7 @@ const ConversationTabView = memo(function ConversationTabView({
       connStatus={connStatus}
       isActive={isActive}
       sendSignal={sendSignal}
-      sessionStats={detail?.session_stats ?? null}
+      sessionStats={effectiveSessionStats}
       detailLoading={detailLoading}
       detailError={detailError}
       hideEmptyState={!hasPersistedConversation || hasSentMessage}

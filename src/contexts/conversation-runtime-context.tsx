@@ -49,6 +49,9 @@ export interface ConversationRuntimeSession {
   syncState: ConversationSyncState
   activeTurnToken: string | null
 
+  // Session-level stats (token usage, context window, etc.)
+  sessionStats: SessionStats | null
+
   // Cleanup
   pendingCleanup: boolean
 }
@@ -141,6 +144,7 @@ function createEmptySession(
     liveMessage: null,
     syncState: "idle",
     activeTurnToken: null,
+    sessionStats: null,
     pendingCleanup: false,
   }
 }
@@ -279,6 +283,7 @@ function reducer(
         detailError: null,
         externalId: nextExternalId ?? current.externalId,
         localTurns: [],
+        sessionStats: action.detail.session_stats ?? current.sessionStats,
         ...(isActivelyInteracting
           ? {}
           : { optimisticTurns: [], liveMessage: null }),
@@ -483,6 +488,7 @@ function reducer(
         ...current,
         localTurns: changed ? patchedTurns : current.localTurns,
         detail: patchedDetail,
+        sessionStats: action.sessionStats ?? current.sessionStats,
       }))
     }
 
